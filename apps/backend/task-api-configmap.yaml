@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: task-api-config
+  namespace: backend
+data:
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "3000"
+  KEYCLOAK_URL: http://keycloak.keycloak.svc.cluster.local:80
+  KEYCLOAK_REALM: task-api-realm
+  KEYCLOAK_CLIENT_ID: app-client
+  KEYCLOAK_ADMIN_CLIENT_ID: app-client
+  KEYCLOAK_ADMIN_CLIENT_SECRET: JfEMV2NKLJ1l4awIjW8chcFpntEUvLXx
+  KEYCLOAK_AUDIENCE: account
