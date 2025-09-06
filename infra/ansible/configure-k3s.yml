@@ -20,9 +20,11 @@
   become: yes
   tasks:
     - name: Install K3s control plane
-      shell: curl -sfL https://get.k3s.io | sh -
+      shell: curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.31.5+k3s1" sh -
       args:
         creates: /usr/local/bin/k3s
+      retries: 3
+      delay: 10
 
     - name: Wait for K3s API server to be ready
       wait_for:
@@ -88,9 +90,11 @@
 
     - name: Join worker node to K3s cluster
       shell: |
-        curl -sfL https://get.k3s.io | K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ token_file.content | b64decode }} sh -
+        curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="v1.31.5+k3s1" K3S_URL=https://{{ master_ip }}:6443 K3S_TOKEN={{ token_file.content | b64decode }} sh -
       args:
         creates: /etc/systemd/system/k3s-agent.service
+      retries: 3
+      delay: 10
 
     - name: Wait for K3s agent kubelet config
       wait_for:
