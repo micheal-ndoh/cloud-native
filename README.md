@@ -87,7 +87,7 @@ This project sets up a complete cloud-native environment with:
 cloud-native-gauntlet/
 ├── README.md                    # Project overview and setup instructions
 ├── .gitignore                   # Git ignore patterns
-├── infra/                       # Infrastructure automation
+├── infrastruture/                       # Infrastructure automation
 │   ├── ansible/                 # Ansible playbooks for K3s setup
 │   └── terraform/               # Terraform for VM creation
 ├── apps/                        # Application deployments
@@ -181,7 +181,7 @@ ping <master-ip>
 #### 4. Cleanup
 ```bash
 # Destroy infrastructure
-cd infra/terraform
+cd infrastruture/terraform
 terraform destroy -auto-approve
 ```
 

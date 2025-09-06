@@ -20,7 +20,7 @@ FROM debian:bookworm-slim AS runtime
 # Install required libraries
 RUN apt-get update && apt-get install -y \
     libssl3 \
- && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*
 
 # Create app user
 RUN useradd -m -s /bin/bash appuser
@@ -40,8 +40,8 @@ USER appuser
 LABEL org.opencontainers.image.title="Task API"
 LABEL org.opencontainers.image.description="A Rust backend API with Swagger docs, Keycloak auth, and logging support"
 LABEL org.opencontainers.image.version="v2.0.0"
-LABEL org.opencontainers.image.authors="t-desmond <you@example.com>"
-LABEL org.opencontainers.image.source="https://github.com/t-desmond/cloud-native-gauntlet"
+LABEL org.opencontainers.image.authors="micheal-ndoh <michealndoh@gmail.com>"
+LABEL org.opencontainers.image.source="https://github.com/micheal-ndoh/cloud-native.git"
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.revision="Added Keycloak authentication and logging"
 LABEL org.opencontainers.image.created="2025-09-03"

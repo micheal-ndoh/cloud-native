@@ -75,7 +75,7 @@ check_prerequisites() {
 # Create infrastructure with Terraform
 create_infrastructure() {
     print_status "Creating infrastructure..."
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     terraform init
     terraform apply -auto-approve
 
@@ -85,7 +85,7 @@ create_infrastructure() {
 # Update Ansible inventory
 update_inventory() {
     print_status "Updating Ansible inventory..."
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     local VM_IPS=$(terraform output -json vm_ips)
     local MASTER_IP=$(echo "$VM_IPS" | jq -r '.master')
     local WORKER_IP=$(echo "$VM_IPS" | jq -r '.worker')
@@ -119,7 +119,7 @@ EOF
 # Set up SSH access to VMs
 setup_ssh_access() {
     print_status "Setting up SSH access..."
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     local VM_IPS=$(terraform output -json vm_ips)
     cd ../..
     local NODES=("k3s-master" "k3s-worker" "docker-registry")
@@ -152,7 +152,7 @@ mount_project_directory() {
 # Run Ansible provisioning
 run_ansible_provisioning() {
     print_status "Running Ansible provisioning..."
-    cd infrastruture/ansible
+    cd infrastructure/ansible
     ansible-playbook -i inventory.ini configure-k3s.yml setup-registry.yml -v|| {
         print_error "K3s provisioning failed!"
         exit 1
@@ -163,7 +163,7 @@ run_ansible_provisioning() {
 # Wait for cluster readiness
 wait_for_cluster() {
     print_status "Waiting for cluster..."
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     local MASTER_IP=$(terraform output -json vm_ips | jq -r '.master')
     cd ../..
     for i in {1..30}; do
@@ -178,7 +178,7 @@ wait_for_cluster() {
 # Show cluster information
 show_cluster_info() {
     print_status "Setup completed!"
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     local VM_IPS=$(terraform output -json vm_ips)
     local MASTER_IP=$(echo "$VM_IPS" | jq -r '.master')
     local WORKER_IP=$(echo "$VM_IPS" | jq -r '.worker')
@@ -194,7 +194,7 @@ show_cluster_info() {
 # Cleanup on error or interruption
 cleanup() {
     print_error "Setup failed. Cleaning up..."
-    cd infrastruture/terraform
+    cd infrastructure/terraform
     terraform destroy -auto-approve || true
     cd ../..
     exit 1

@@ -1,0 +1,42 @@
+name: Rust app
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unverified commits
+        uses: nadock/verified_commits_check@v1
+
+      - name: Build
+        run: cargo build --verbose
+
+      - name: Run tests
+        run: cargo test --verbose
+
+      - name: log into GitHub container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: downcase REPO
+        run: echo "Not needed, using fixed repo name."
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
+        with:
+          context: apps/backend/task-api
+          file: apps/backend/task-api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/micheal-ndoh/task-api:latest
