@@ -18,9 +18,11 @@ jobs:
 
       - name: Build
         run: cargo build --verbose
+        working-directory: apps/backend/task-api
 
       - name: Run tests
         run: cargo test --verbose
+        working-directory: apps/backend/task-api
 
       - name: log into GitHub container registry
         uses: docker/login-action@v2
