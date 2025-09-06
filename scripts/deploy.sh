@@ -20,14 +20,14 @@ print_error() {
 
 # Get master VM IP from terraform output
 get_master_ip() {
-    MASTER_IP=$(cd infra/terraform && terraform output -json vm_ips | jq -r '.master' 2>/dev/null)
+    MASTER_IP=$(cd infrastruture/terraform && terraform output -json vm_ips | jq -r '.master' 2>/dev/null)
     [[ -z "$MASTER_IP" ]] && { print_error "Could not get master IP"; exit 1; }
     echo "$MASTER_IP"
 }
 
 # Get registry IP from terraform output
 get_registry_ip() {
-    REGISTRY_IP=$(cd infra/terraform && terraform output -json vm_ips | jq -r '.registry' 2>/dev/null)
+    REGISTRY_IP=$(cd infrastruture/terraform && terraform output -json vm_ips | jq -r '.registry' 2>/dev/null)
     [[ -z "$REGISTRY_IP" ]] && { print_error "Could not get registry IP"; exit 1; }
     echo "$REGISTRY_IP"
 }

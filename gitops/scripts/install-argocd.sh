@@ -115,7 +115,7 @@ show_argocd_info() {
     echo "=========================="
     
     # Get master IP for external access
-    MASTER_IP=$(cd ../../infra/terraform && terraform output -json vm_ips | jq -r '.master' 2>/dev/null || echo "N/A")
+    MASTER_IP=$(cd ../../infrastruture/terraform && terraform output -json vm_ips | jq -r '.master' 2>/dev/null || echo "N/A")
     
     echo "ArgoCD Server:"
     echo "- Local: kubectl port-forward svc/argocd-server -n argocd 8080:443"

@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/your-username/cloud-native-gauntlet.git
+    repoURL: https://github.com/micheal-ndoh/cloud-native.git
     targetRevision: HEAD
     path: apps/app1
   destination:

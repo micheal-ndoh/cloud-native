@@ -138,6 +138,6 @@
         - ghcr.io/cloudnative-pg/cloudnative-pg:latest
         - gitea/gitea:latest
         - buoyantio/linkerd:latest
-        - ghcr.io/t-desmond/task-api:latest
+        - ghcr.io/micheal-ndoh/task-api:latest
         - ghcr.io/cloudnative-pg/postgresql:16.4
       when: "'registry' in group_names"
