@@ -9,6 +9,8 @@ GITEA_HOST="gitea.local"
 GITEA_API="http://${GITEA_HOST}/api/v1"
 USER="${1:-michealndoh}"
 PASS="${2:-Nemory09}"
+# Optional commit message, allow spaces via quoted arg
+COMMIT_MSG="${3:-}"
 
 APP_REPO="Cloud-native"
 INFRA_REPO="Cloud-native-infra"
@@ -63,6 +65,41 @@ chmod +x build-and-push.sh
 ```
 EOF
 
+# Add Drone CI pipeline to build & push to registry.local:5000
+cat >"${APP_DIR}/.drone.yml" <<'EOF'
+kind: pipeline
+type: docker
+name: build-and-push
+
+steps:
+  - name: docker-build-push
+    image: plugins/docker
+    settings:
+      repo: registry.local:5000/task-api
+      tags:
+        - latest
+      dockerfile: apps/backend/task-api/Dockerfile
+      context: apps/backend/task-api
+      registry: registry.local:5000
+      insecure: true
+      skip_verify: true
+      build_args_from_env:
+        - RUSTFLAGS
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  event:
+    - push
+    - tag
+EOF
+
 echo "Preparing infra repo content..."
 
 # Copy everything except the application source folder and local artifacts
@@ -79,15 +116,50 @@ push_repo() {
   local repo_name="$1"; shift
   local remote_url="http://${USER}:${PASS}@${GITEA_HOST}/${USER}/${repo_name}.git"
 
-  ( cd "${src_dir}" \
-    && git init \
-    && git config user.name "${USER}" \
-    && git config user.email "${USER}@local" \
-    && git add . \
-    && git commit -m "Initial split: ${repo_name}" \
-    && git branch -M main \
-    && git remote add origin "${remote_url}" \
-    && git push -u --force origin main )
+  (
+    set -e
+    cd "${src_dir}"
+
+    # Initialize or reinitialize repo
+    if [ ! -d .git ]; then
+      git init
+    else
+      git init
+    fi
+
+    git config user.name "${USER}"
+    git config user.email "${USER}@local"
+
+    # Prepare commit
+    git add -A
+    # Use provided message or sensible default
+    local msg
+    if [ -n "${COMMIT_MSG}" ]; then
+      msg="${COMMIT_MSG}"
+    else
+      msg="Initial split: ${repo_name}"
+    fi
+
+    # Only commit if there are staged changes
+    if ! git diff --cached --quiet; then
+      git commit -m "${msg}"
+    else
+      echo "[split] No changes to commit for ${repo_name}"
+    fi
+
+    # Ensure main branch exists and is current
+    git checkout -B main
+
+    # Configure remote origin (create or update)
+    if git remote | grep -q '^origin$'; then
+      git remote set-url origin "${remote_url}" || true
+    else
+      git remote add origin "${remote_url}"
+    fi
+
+    # Push (force to ensure initial state matches split)
+    git push -u --force origin main
+  )
 }
 
 echo "Pushing app repo to Gitea (${APP_REPO})..."
