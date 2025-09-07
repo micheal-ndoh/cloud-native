@@ -8,10 +8,10 @@ steps:
     image: alpine:latest
     commands:
       - echo "Hello from Drone CI!"
-      - echo "Repository: ${DRONE_REPO_NAME}"
-      - echo "Branch: ${DRONE_BRANCH}"
-      - echo "Commit: ${DRONE_COMMIT_SHA}"
-      - echo "Build Number: ${DRONE_BUILD_NUMBER}"
+      - echo "Repository: $DRONE_REPO_NAME"
+      - echo "Branch: $DRONE_BRANCH"
+      - echo "Commit: $DRONE_COMMIT_SHA"
+      - echo "Build Number: $DRONE_BUILD_NUMBER"
 
   # Test with your Rust project
   - name: test-rust-project
