@@ -1,19 +1,19 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: app1
+  name: gitea
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
-    repoURL: https://github.com/micheal-ndoh/cloud-native.git
+    repoURL: http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git
     targetRevision: HEAD
-    path: apps/app1
+    path: apps/gitea
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    namespace: gitea
   syncPolicy:
     automated:
       prune: true
@@ -25,4 +25,4 @@ spec:
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 3m 
+        maxDuration: 3m

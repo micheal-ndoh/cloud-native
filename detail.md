@@ -6,6 +6,8 @@
 - **Health Check:** <http://task-api.local/api/health>
 - **Keycloak:** <http://keycloak.local/auth>
 - **Keycloak Admin Console:** <http://keycloak.local/>
+- **Gitea:** <http://gitea.local/>
+- **Drone CI:** <http://drone.local/>
 - **Registry:** 10.38.229.242:5000
 
 ## Database
@@ -36,6 +38,22 @@
 
 - **Admin Console:** <http://keycloak.local/>
 - **Default credentials:** (see keycloak-secret.yaml)
+
+## Gitea Git Repository Management
+
+- **Web Interface:** <http://gitea.local/>
+- **Repositories:**
+  - `michealndoh/Cloud-native` - Main project repository
+  - `michealndoh/Cloud-native-infra` - Infrastructure repository
+- **Features:** Git hosting, OAuth applications, webhooks
+
+## Drone CI/CD Pipeline
+
+- **Web Interface:** <http://drone.local/>
+- **Status:** ✅ Successfully configured and running
+- **Pipeline:** Simple test pipeline with Alpine and Rust steps
+- **Integration:** Connected to Gitea for source code management
+- **OAuth:** Configured with Gitea for authentication
 
 ## Pods
 

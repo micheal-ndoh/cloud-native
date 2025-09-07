@@ -1,7 +1,7 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: monitoring
+  name: ci
   namespace: argocd
   finalizers:
     - resources-finalizer.argocd.argoproj.io
@@ -10,10 +10,10 @@ spec:
   source:
     repoURL: http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git
     targetRevision: HEAD
-    path: monitoring
+    path: apps/ci
   destination:
     server: https://kubernetes.default.svc
-    namespace: monitoring
+    namespace: ci
   syncPolicy:
     automated:
       prune: true
@@ -25,4 +25,4 @@ spec:
       backoff:
         duration: 5s
         factor: 2
-        maxDuration: 3m 
+        maxDuration: 3m
