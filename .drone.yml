@@ -19,19 +19,13 @@ steps:
     commands:
       - echo "Testing Rust project structure..."
       - ls -la
-      - if [ -d "apps/backend/task-api" ]; then
-          echo "✅ Rust project found";
-          cd apps/backend/task-api;
-          cargo --version;
-          ls -la;
-        else
-          echo "❌ Rust project not found";
-          exit 1;
-        fi
+      - test -d "apps/backend/task-api" && echo "✅ Rust project found" || echo "❌ Rust project not found"
+      - test -d "apps/backend/task-api" && cd apps/backend/task-api && cargo --version
+      - test -d "apps/backend/task-api" && cd apps/backend/task-api && ls -la
     when:
       event: [ push, pull_request ]
 
 # Trigger on all branches
 trigger:
   branch: [ main, master, develop, feature/* ]
-  event: [ push, pull_request ]# Drone CI Pipeline
+  event: [ push, pull_request ]
