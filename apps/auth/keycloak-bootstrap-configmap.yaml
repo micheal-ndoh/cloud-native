@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-bootstrap
+  namespace: keycloak
+data:
+  bootstrap.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    SERVER_URL="${KEYCLOAK_URL}"
+    REALM_NAME="${KEYCLOAK_REALM}"
+    CLIENT_ID="${KEYCLOAK_CLIENT_ID}"
+
+    echo "Waiting for Keycloak to become ready at ${SERVER_URL}..."
+    for i in {1..60}; do
+      if curl -sSf "${SERVER_URL}/realms/master/.well-known/openid-configuration" >/dev/null; then
+        break
+      fi
+      sleep 5
+    done
+
+    /opt/keycloak/bin/kcadm.sh config credentials \
+      --server "${SERVER_URL}" \
+      --realm master \
+      --user "${KEYCLOAK_ADMIN}" \
+      --password "${KEYCLOAK_ADMIN_PASSWORD}"
+
+    # Create realm if missing
+    if ! /opt/keycloak/bin/kcadm.sh get realms/${REALM_NAME} >/dev/null 2>&1; then
+      echo "Creating realm ${REALM_NAME}"
+      /opt/keycloak/bin/kcadm.sh create realms -s realm="${REALM_NAME}" -s enabled=true
+    fi
+
+    # Create client if missing
+    if ! /opt/keycloak/bin/kcadm.sh get clients -r ${REALM_NAME} -q clientId=${CLIENT_ID} | grep -q '"clientId"'; then
+      echo "Creating client ${CLIENT_ID}"
+      /opt/keycloak/bin/kcadm.sh create clients -r ${REALM_NAME} \
+        -s clientId="${CLIENT_ID}" \
+        -s protocol=openid-connect \
+        -s publicClient=false \
+        -s serviceAccountsEnabled=true \
+        -s directAccessGrantsEnabled=true \
+        -s standardFlowEnabled=true \
+        -s "redirectUris=[\"*\"]" \
+        -s "webOrigins=[\"*\"]"
+      # set a secret for the client equal to KEYCLOAK_ADMIN_CLIENT_SECRET if provided
+      if [[ -n "${KEYCLOAK_ADMIN_CLIENT_SECRET:-}" ]]; then
+        CLIENT_UUID=$(/opt/keycloak/bin/kcadm.sh get clients -r ${REALM_NAME} -q clientId=${CLIENT_ID} --fields id --format csv --noquotes)
+        /opt/keycloak/bin/kcadm.sh update clients/${CLIENT_UUID} -r ${REALM_NAME} -s secret="${KEYCLOAK_ADMIN_CLIENT_SECRET}"
+      fi
+    fi
+
+    # Ensure roles exist
+    for role in User Admin; do
+      if ! /opt/keycloak/bin/kcadm.sh get roles -r ${REALM_NAME} | grep -q '"name": "'"$role"'"'; then
+        echo "Creating role $role"
+        /opt/keycloak/bin/kcadm.sh create roles -r ${REALM_NAME} -s name="$role"
+      fi
+    done
+
+    # Create a test user if missing
+    if ! /opt/keycloak/bin/kcadm.sh get users -r ${REALM_NAME} -q username=testuser | grep -q '"username"'; then
+      echo "Creating test user"
+      /opt/keycloak/bin/kcadm.sh create users -r ${REALM_NAME} -s username=testuser -s enabled=true
+      USER_ID=$(/opt/keycloak/bin/kcadm.sh get users -r ${REALM_NAME} -q username=testuser --fields id --format csv --noquotes)
+      /opt/keycloak/bin/kcadm.sh set-password -r ${REALM_NAME} --userid ${USER_ID} --new-password testpass
+      # Assign 'User' role
+      ROLE_ID=$(/opt/keycloak/bin/kcadm.sh get roles -r ${REALM_NAME} --fields name,id | jq -r '.[] | select(.name=="User") | .id')
+      /opt/keycloak/bin/kcadm.sh add-roles -r ${REALM_NAME} --uid ${USER_ID} --rolename User || true
+    fi
+
+    echo "Keycloak bootstrap completed"

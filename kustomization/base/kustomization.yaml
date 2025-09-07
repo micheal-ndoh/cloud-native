@@ -1,0 +1,17 @@
+# Base Kustomization Configuration
+# This file should contain the base configuration for all environments
+#
+# Example structure:
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+#
+# resources:
+# - ../../apps/app1/
+# - ../../apps/app2/
+# - ../../monitoring/
+#
+# commonLabels:
+#   project: cloud-native-gauntlet
+#   environment: base
+#
+# Add your base kustomization configuration here 

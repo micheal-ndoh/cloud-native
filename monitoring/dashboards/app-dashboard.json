@@ -1,0 +1,18 @@
+{
+  "dashboard": {
+    "title": "Cloud Native Gauntlet - Applications Dashboard",
+    "description": "Sample dashboard for monitoring applications",
+    "panels": [
+      {
+        "title": "Sample Panel",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up",
+            "legendFormat": "Application Status"
+          }
+        ]
+      }
+    ]
+  }
+} 

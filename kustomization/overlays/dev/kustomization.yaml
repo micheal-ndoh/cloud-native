@@ -1,0 +1,25 @@
+# Development Environment Kustomization Configuration
+# This file should contain development-specific configurations
+#
+# Example structure:
+# apiVersion: kustomize.config.k8s.io/v1beta1
+# kind: Kustomization
+#
+# resources:
+# - ../../base/
+#
+# namespace: dev
+#
+# commonLabels:
+#   environment: development
+#
+# patches:
+# - target:
+#     kind: Deployment
+#     name: app1
+#   patch: |-
+#     - op: replace
+#       path: /spec/replicas
+#       value: 1
+#
+# Add your development environment configuration here 
