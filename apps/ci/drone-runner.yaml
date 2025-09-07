@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone-runner
+  namespace: ci
+  labels:
+    app: drone-runner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drone-runner
+  template:
+    metadata:
+      labels:
+        app: drone-runner
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: runner
+          image: drone/drone-runner-docker:1
+          env:
+            - name: DRONE_RPC_HOST
+              value: drone-server.ci.svc.cluster.local
+            - name: DRONE_RPC_PROTO
+              value: http
+            - name: DRONE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secrets
+                  key: DRONE_RPC_SECRET
+            - name: DRONE_RUNNER_CAPACITY
+              value: "2"
+          volumeMounts:
+            - name: dockersock
+              mountPath: /var/run/docker.sock
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              memory: "256Mi"
+              ephemeral-storage: "512Mi"
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run/docker.sock

@@ -1,0 +1,30 @@
+kind: pipeline
+type: docker
+name: build-and-push
+
+steps:
+  - name: docker-build-push
+    image: plugins/docker
+    settings:
+      repo: registry.local:5000/task-api
+      tags:
+        - latest
+      dockerfile: Dockerfile
+      context: .
+      registry: registry.local:5000
+      insecure: true
+      skip_verify: true
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  event:
+    - push
+    - tag
+

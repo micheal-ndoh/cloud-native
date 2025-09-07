@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ci
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: drone-secrets
+  namespace: ci
+type: Opaque
+stringData:
+  DRONE_GITEA_CLIENT_ID: "gitea-client-id"
+  DRONE_GITEA_CLIENT_SECRET: "gitea-client-secret"
+  DRONE_RPC_SECRET: "supersecret"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone-server
+  namespace: ci
+  labels:
+    app: drone-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: drone-server
+  template:
+    metadata:
+      labels:
+        app: drone-server
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: server
+          image: drone/drone:2
+          env:
+            - name: DRONE_GITEA_SERVER
+              value: "http://gitea.gitea.svc.cluster.local:3000"
+            - name: DRONE_SERVER_HOST
+              value: "drone.local"
+            - name: DRONE_SERVER_PROTO
+              value: "http"
+            - name: DRONE_RPC_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secrets
+                  key: DRONE_RPC_SECRET
+            - name: DRONE_GITEA_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secrets
+                  key: DRONE_GITEA_CLIENT_ID
+            - name: DRONE_GITEA_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secrets
+                  key: DRONE_GITEA_CLIENT_SECRET
+            - name: DRONE_USER_CREATE
+              value: "username:michealndoh,admin:true"
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+              ephemeral-storage: "128Mi"
+            limits:
+              memory: "256Mi"
+              ephemeral-storage: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drone-server
+  namespace: ci
+spec:
+  selector:
+    app: drone-server
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: drone
+  namespace: ci
+spec:
+  rules:
+    - host: drone.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: drone-server
+                port:
+                  number: 80

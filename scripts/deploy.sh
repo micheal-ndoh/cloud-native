@@ -52,13 +52,13 @@ configure_hosts_file() {
     # Check if task-api.local exists in /etc/hosts
     if grep -q "task-api.local" /etc/hosts; then
         if [[ "$(uname)" == "Darwin" ]]; then
-            sudo sed -i '' "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local/" /etc/hosts
+            sudo sed -i '' "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local/" /etc/hosts
         else
-            sudo sed -i "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local/" /etc/hosts
+            sudo sed -i "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local/" /etc/hosts
         fi
     else
-        # Add task-api.local, keycloak.local, gitea.local and registry.local to /etc/hosts
-        echo "$MASTER_IP task-api.local keycloak.local gitea.local registry.local" | sudo tee -a /etc/hosts >/dev/null
+        # Add task-api.local, keycloak.local, gitea.local, registry.local and drone.local to /etc/hosts
+        echo "$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local" | sudo tee -a /etc/hosts >/dev/null
     fi
 }
 
@@ -266,6 +266,7 @@ show_deployment_status() {
     echo "Registry: $REGISTRY_IP:5000"
     echo "Keycloak: http://keycloak.local/"
     echo "Gitea:    http://gitea.local/"
+    echo "Drone:    http://drone.local/"
     echo "ArgoCD:   http://argocd-server.argocd.svc.cluster.local/ (port-forward or ingress)"
 
     echo -e "\nPods:"
@@ -304,8 +305,24 @@ main() {
     deploy_gitea
     deploy_linkerd
     deploy_gitops
+    deploy_drone
     show_deployment_status
     print_status "Deployment completed!"
 }
 
 main "$@"
+
+# Deploy Drone CI (server + runner)
+deploy_drone() {
+    print_status "Deploying Drone CI..."
+    local MASTER_IP
+    MASTER_IP=$(get_master_ip)
+
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-server.yaml
+        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-runner.yaml
+        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-server
+        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-runner
+    "
+}

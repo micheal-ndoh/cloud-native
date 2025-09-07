@@ -63,6 +63,41 @@ chmod +x build-and-push.sh
 ```
 EOF
 
+# Add Drone CI pipeline to build & push to registry.local:5000
+cat >"${APP_DIR}/.drone.yml" <<'EOF'
+kind: pipeline
+type: docker
+name: build-and-push
+
+steps:
+  - name: docker-build-push
+    image: plugins/docker
+    settings:
+      repo: registry.local:5000/task-api
+      tags:
+        - latest
+      dockerfile: apps/backend/task-api/Dockerfile
+      context: apps/backend/task-api
+      registry: registry.local:5000
+      insecure: true
+      skip_verify: true
+      build_args_from_env:
+        - RUSTFLAGS
+    volumes:
+      - name: dockersock
+        path: /var/run/docker.sock
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+trigger:
+  event:
+    - push
+    - tag
+EOF
+
 echo "Preparing infra repo content..."
 
 # Copy everything except the application source folder and local artifacts
