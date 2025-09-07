@@ -180,7 +180,13 @@ deploy_auth() {
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-configmap.yaml"
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config delete -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-job.yaml --ignore-not-found || true"
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-job.yaml"
-    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n keycloak wait --for=condition=complete --timeout=300s job/keycloak-bootstrap"
+    # Increase timeout to give bootstrap more time; on failure, fetch logs via SSH
+    if ! ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n keycloak wait --for=condition=complete --timeout=600s job/keycloak-bootstrap"; then
+        print_error "Keycloak bootstrap did not complete in time. Fetching last 200 log lines..."
+        ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP \
+            "kubectl --kubeconfig /home/ubuntu/.kube/config -n keycloak logs job/keycloak-bootstrap | tail -n 200 || true"
+        exit 1
+    fi
 
     # Service and Ingress
     local post_manifests=(
@@ -215,7 +221,17 @@ deploy_gitea() {
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f $manifest"
 
     print_status "Waiting for Gitea deployment to be ready..."
-    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config wait --for=condition=available --timeout=300s deployment/gitea -n gitea"
+    if ! ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config wait --for=condition=available --timeout=600s deployment/gitea -n gitea"; then
+        print_error "Gitea did not become ready in time. Gathering diagnostics..."
+        ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n gitea get pods -o wide | cat"
+        # Describe the first pod
+        POD_NAME=$(ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n gitea get pods -o jsonpath='{.items[0].metadata.name}'" 2>/dev/null || true)
+        if [ -n "$POD_NAME" ]; then
+            ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n gitea describe pod $POD_NAME | tail -n 200 || true"
+            ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n gitea logs $POD_NAME --all-containers=true --tail=200 || true"
+        fi
+        exit 1
+    fi
 }
 
 # Enable Linkerd injection and restart workloads
@@ -247,6 +263,21 @@ deploy_gitops() {
         export KUBECONFIG=/home/ubuntu/.kube/config
         kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
         kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/app-of-apps.yaml
+    "
+}
+
+# Deploy Drone CI (server + runner)
+deploy_drone() {
+    print_status "Deploying Drone CI..."
+    local MASTER_IP
+    MASTER_IP=$(get_master_ip)
+
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-server.yaml
+        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-runner.yaml
+        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-server
+        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-runner
     "
 }
 
@@ -311,18 +342,3 @@ main() {
 }
 
 main "$@"
-
-# Deploy Drone CI (server + runner)
-deploy_drone() {
-    print_status "Deploying Drone CI..."
-    local MASTER_IP
-    MASTER_IP=$(get_master_ip)
-
-    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
-        export KUBECONFIG=/home/ubuntu/.kube/config
-        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-server.yaml
-        kubectl apply -f /home/ubuntu/projects/apps/ci/drone-runner.yaml
-        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-server
-        kubectl -n ci wait --for=condition=available --timeout=300s deployment/drone-runner
-    "
-}
