@@ -1,3 +1,5 @@
+[![Rust app](https://github.com/micheal-ndoh/cloud-native/actions/workflows/deploy.yml/badge.svg)](https://github.com/micheal-ndoh/cloud-native/actions/workflows/deploy.yml)
+
 # Cloud Native Gauntlet
 
 A comprehensive cloud-native project demonstrating Kubernetes deployment, monitoring, and infrastructure automation using K3s and Multipass.

@@ -3,14 +3,18 @@ target/
 **/*.rs.bk
 Cargo.lock
 *.pdb
-
+docs/PROJECT_STATUS.md
+ASSIGNMENT_ANALYSIS.md
+IMPLEMENTATION_PLAN.md
+knowledge.md
+/docs/Cloud Native Full Project Detailed-1.pdf
 # IDE and Editor files
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-
+ASS
 # OS generated files
 .DS_Store
 .DS_Store?

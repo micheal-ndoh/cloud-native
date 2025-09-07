@@ -197,7 +197,7 @@ show_deployment_status() {
     echo "Health Check: http://task-api.local/api/health"
     echo "Database Port Forward: kubectl port-forward svc/cluster-app-rw 5432:5432 -n database"
     echo "Registry: $REGISTRY_IP:5000"
-    echo "Keycloak: http://keycloak.local/auth"
+    echo "Keycloak: http://keycloak.local/"
 
     echo -e "\nPods:"
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config get pods --all-namespaces"
