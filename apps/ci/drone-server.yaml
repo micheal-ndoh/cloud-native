@@ -42,6 +42,8 @@ spec:
               value: "drone.local"
             - name: DRONE_SERVER_PROTO
               value: "http"
+            - name: DRONE_SERVER_PORT
+              value: ":80"
             - name: DRONE_RPC_SECRET
               valueFrom:
                 secretKeyRef:
@@ -59,8 +61,15 @@ spec:
                   key: DRONE_GITEA_CLIENT_SECRET
             - name: DRONE_USER_CREATE
               value: "username:michealndoh,admin:true"
+            - name: DRONE_DATABASE_DRIVER
+              value: "sqlite3"
+            - name: DRONE_DATABASE_DATASOURCE
+              value: "/data/database.sqlite"
           ports:
             - containerPort: 80
+          volumeMounts:
+            - name: drone-data
+              mountPath: /data
           resources:
             requests:
               cpu: "100m"
@@ -69,6 +78,9 @@ spec:
             limits:
               memory: "256Mi"
               ephemeral-storage: "256Mi"
+      volumes:
+        - name: drone-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service

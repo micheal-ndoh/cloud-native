@@ -23,21 +23,18 @@ spec:
             - name: KEYCLOAK_REALM
               valueFrom:
                 configMapKeyRef:
-                  name: task-api-config
+                  name: keycloak-config
                   key: KEYCLOAK_REALM
-                  optional: true
             - name: KEYCLOAK_CLIENT_ID
               valueFrom:
                 configMapKeyRef:
-                  name: task-api-config
-                  key: KEYCLOAK_ADMIN_CLIENT_ID
-                  optional: true
+                  name: keycloak-config
+                  key: KEYCLOAK_CLIENT_ID
             - name: KEYCLOAK_ADMIN_CLIENT_SECRET
               valueFrom:
                 configMapKeyRef:
-                  name: task-api-config
+                  name: keycloak-config
                   key: KEYCLOAK_ADMIN_CLIENT_SECRET
-                  optional: true
           volumeMounts:
             - name: bootstrap
               mountPath: /bootstrap

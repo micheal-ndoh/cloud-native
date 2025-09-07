@@ -7,3 +7,7 @@ data:
   KEYCLOAK_ADMIN: admin
   KEYCLOAK_ADMIN_PASSWORD: admin
   KC_DB: postgres
+  # Added for bootstrap job so it doesn't depend on backend namespace
+  KEYCLOAK_REALM: task-api-realm
+  KEYCLOAK_CLIENT_ID: app-client
+  KEYCLOAK_ADMIN_CLIENT_SECRET: JfEMV2NKLJ1l4awIjW8chcFpntEUvLXx

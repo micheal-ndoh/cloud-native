@@ -51,11 +51,13 @@ metadata:
   name: gitea-data
   namespace: gitea
 spec:
+  storageClassName: local-path
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 5Gi
+---
 apiVersion: v1
 kind: Service
 metadata:
