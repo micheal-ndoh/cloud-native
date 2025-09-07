@@ -1,23 +1,19 @@
 kind: pipeline
 type: docker
-name: simple-test
+name: default
 
 steps:
-  - name: hello-world
-    image: alpine:latest
-    commands:
-      - echo "Hello from Drone CI!"
-      - echo "This is a simple test pipeline"
-      - ls -la
+- name: hello-world
+  image: alpine:latest
+  commands:
+  - echo "Hello from Drone CI!"
+  - echo "This is a simple test pipeline"
+  - ls -la
 
-  - name: test-rust
-    image: rust:1.75
-    commands:
-      - echo "Testing Rust environment"
-      - rustc --version
-      - cargo --version
-      - ls -la
-
-trigger:
-  branch: [ main, master ]
-  event: [ push, pull_request ]
+- name: test-rust
+  image: rust:1.75
+  commands:
+  - echo "Testing Rust environment"
+  - rustc --version
+  - cargo --version
+  - ls -la
