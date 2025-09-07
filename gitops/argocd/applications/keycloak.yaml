@@ -8,7 +8,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitea.gitea.svc.cluster.local:3000/admin/cloud-native-gauntlet.git
+    repoURL: http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git
     targetRevision: HEAD
     path: apps/auth
   destination:

@@ -246,10 +246,7 @@ deploy_gitops() {
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
         export KUBECONFIG=/home/ubuntu/.kube/config
         kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/backend.yaml
-        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/database.yaml
-        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/keycloak.yaml
-        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/monitoring.yaml
+        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/app-of-apps.yaml
     "
 }
 
