@@ -1,0 +1,87 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  # Build and test the Rust application
+  - name: build-and-test
+    image: rust:1.75
+    commands:
+      - cd apps/backend/task-api
+      - cargo test
+      - cargo build --release
+    when:
+      event: [ push, pull_request ]
+
+  # Build Docker image
+  - name: build-docker-image
+    image: plugins/docker
+    settings:
+      registry: registry.local:5000
+      repo: registry.local:5000/task-api
+      tags: [ latest, ${DRONE_COMMIT_SHA:0:8} ]
+      dockerfile: apps/backend/task-api/Dockerfile
+      context: .
+    when:
+      event: [ push ]
+      branch: [ main, master ]
+
+  # Deploy to Kubernetes (only on main branch)
+  - name: deploy-to-k8s
+    image: plugins/kubectl
+    settings:
+      server: https://kubernetes.default.svc.cluster.local
+      config: /etc/kubernetes/kubeconfig
+    commands:
+      - kubectl set image deployment/task-api task-api=registry.local:5000/task-api:${DRONE_COMMIT_SHA:0:8} -n backend
+      - kubectl rollout status deployment/task-api -n backend
+    when:
+      event: [ push ]
+      branch: [ main, master ]
+
+  # Security scan
+  - name: security-scan
+    image: aquasec/trivy:latest
+    commands:
+      - trivy image registry.local:5000/task-api:${DRONE_COMMIT_SHA:0:8}
+    when:
+      event: [ push ]
+      branch: [ main, master ]
+
+  # Notify on success
+  - name: notify-success
+    image: plugins/webhook
+    settings:
+      urls: 
+        - http://webhook.site/your-webhook-url
+      content_type: application/json
+      template: |
+        {
+          "text": "✅ Build successful for commit ${DRONE_COMMIT_SHA:0:8}",
+          "repository": "${DRONE_REPO_NAME}",
+          "branch": "${DRONE_BRANCH}"
+        }
+    when:
+      status: [ success ]
+
+  # Notify on failure
+  - name: notify-failure
+    image: plugins/webhook
+    settings:
+      urls: 
+        - http://webhook.site/your-webhook-url
+      content_type: application/json
+      template: |
+        {
+          "text": "❌ Build failed for commit ${DRONE_COMMIT_SHA:0:8}",
+          "repository": "${DRONE_REPO_NAME}",
+          "branch": "${DRONE_BRANCH}",
+          "error": "${DRONE_BUILD_STATUS}"
+        }
+    when:
+      status: [ failure ]
+
+# Trigger on all branches and pull requests
+trigger:
+  branch: [ main, master, develop, feature/* ]
+  event: [ push, pull_request ]
