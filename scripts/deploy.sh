@@ -43,22 +43,22 @@ check_ssh_access() {
     }
 }
 
-# Configure /etc/hosts for task-api.local and keycloak.local
+# Configure /etc/hosts for task-api.local, keycloak.local, gitea.local and registry.local
 configure_hosts_file() {
     local MASTER_IP
     MASTER_IP=$(get_master_ip)
-    print_status "Configuring /etc/hosts for task-api.local and keycloak.local..."
+    print_status "Configuring /etc/hosts for task-api.local, keycloak.local, gitea.local and registry.local..."
 
     # Check if task-api.local exists in /etc/hosts
     if grep -q "task-api.local" /etc/hosts; then
         if [[ "$(uname)" == "Darwin" ]]; then
-            sudo sed -i '' "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local/" /etc/hosts
+            sudo sed -i '' "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local/" /etc/hosts
         else
-            sudo sed -i "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local/" /etc/hosts
+            sudo sed -i "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local/" /etc/hosts
         fi
     else
-        # Add both task-api.local and keycloak.local to /etc/hosts
-        echo "$MASTER_IP task-api.local keycloak.local" | sudo tee -a /etc/hosts >/dev/null
+        # Add task-api.local, keycloak.local, gitea.local and registry.local to /etc/hosts
+        echo "$MASTER_IP task-api.local keycloak.local gitea.local registry.local" | sudo tee -a /etc/hosts >/dev/null
     fi
 }
 
@@ -90,10 +90,11 @@ deploy_database() {
         kubectl -n cnpg-system wait --for=condition=available --timeout=180s deployment/cnpg-controller-manager
     "
 
-    # Apply secrets and CNPG Cluster
+    # Apply secrets, CNPG Cluster, and migrations
     local manifests=(
         "/home/ubuntu/projects/apps/database/db-secret.yaml"
         "/home/ubuntu/projects/apps/database/cluster-app.yaml"
+        "/home/ubuntu/projects/apps/database/task-migrations-configmap.yaml"
     )
 
     for manifest in "${manifests[@]}"; do
@@ -105,6 +106,11 @@ deploy_database() {
 
     print_status "Waiting for CNPG cluster to be ready..."
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config wait --for=condition=ready --timeout=300s cluster/cluster-app -n database"
+
+    print_status "Running database migrations Job..."
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config delete -f /home/ubuntu/projects/apps/database/task-migrations-job.yaml --ignore-not-found"
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/projects/apps/database/task-migrations-job.yaml"
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n database wait --for=condition=complete --timeout=300s job/task-migrations"
 }
 
 # Deploy backend components
@@ -169,6 +175,13 @@ deploy_auth() {
     print_status "Waiting for Keycloak deployment to be ready..."
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config wait --for=condition=available --timeout=300s deployment/keycloak -n keycloak"
 
+    # Bootstrap realm/client/user
+    print_status "Applying Keycloak bootstrap config and job..."
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-configmap.yaml"
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config delete -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-job.yaml --ignore-not-found || true"
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f /home/ubuntu/projects/apps/auth/keycloak-bootstrap-job.yaml"
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config -n keycloak wait --for=condition=complete --timeout=300s job/keycloak-bootstrap"
+
     # Service and Ingress
     local post_manifests=(
         "/home/ubuntu/projects/apps/auth/keycloak-service.yaml"
@@ -181,6 +194,63 @@ deploy_auth() {
         print_status "Applying $(basename $manifest)..."
         ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f $manifest"
     done
+}
+
+# Deploy Gitea components
+deploy_gitea() {
+    print_status "Deploying Gitea..."
+    local MASTER_IP
+    MASTER_IP=$(get_master_ip)
+
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        kubectl create namespace gitea --dry-run=client -o yaml | kubectl apply -f -
+    "
+
+    local manifest="/home/ubuntu/projects/apps/gitea/gitea.yaml"
+
+    print_status "Deleting existing $(basename $manifest)..."
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config delete -f $manifest --ignore-not-found"
+    print_status "Applying $(basename $manifest)..."
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config apply -f $manifest"
+
+    print_status "Waiting for Gitea deployment to be ready..."
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config wait --for=condition=available --timeout=300s deployment/gitea -n gitea"
+}
+
+# Enable Linkerd injection and restart workloads
+deploy_linkerd() {
+    print_status "Ensuring Linkerd sidecar injection is enabled for namespaces..."
+    local MASTER_IP
+    MASTER_IP=$(get_master_ip)
+
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        for ns in backend keycloak gitea; do
+          kubectl label namespace \"$ns\" linkerd.io/inject=enabled --overwrite || true
+        done
+        kubectl -n backend rollout restart deploy/task-api || true
+        kubectl -n keycloak rollout restart deploy/keycloak || true
+        kubectl -n gitea rollout restart deploy/gitea || true
+    "
+
+    print_status "If Linkerd viz is installed, access it via: linkerd viz dashboard"
+}
+
+# Deploy GitOps ArgoCD Applications pointing to Gitea
+deploy_gitops() {
+    print_status "Applying ArgoCD Applications (GitOps) from Gitea..."
+    local MASTER_IP
+    MASTER_IP=$(get_master_ip)
+
+    ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "
+        export KUBECONFIG=/home/ubuntu/.kube/config
+        kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/backend.yaml
+        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/database.yaml
+        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/keycloak.yaml
+        kubectl apply -f /home/ubuntu/projects/gitops/argocd/applications/monitoring.yaml
+    "
 }
 
 # Show deployment status
@@ -198,6 +268,8 @@ show_deployment_status() {
     echo "Database Port Forward: kubectl port-forward svc/cluster-app-rw 5432:5432 -n database"
     echo "Registry: $REGISTRY_IP:5000"
     echo "Keycloak: http://keycloak.local/"
+    echo "Gitea:    http://gitea.local/"
+    echo "ArgoCD:   http://argocd-server.argocd.svc.cluster.local/ (port-forward or ingress)"
 
     echo -e "\nPods:"
     ssh -o StrictHostKeyChecking=no ubuntu@$MASTER_IP "kubectl --kubeconfig /home/ubuntu/.kube/config get pods --all-namespaces"
@@ -232,6 +304,9 @@ main() {
     deploy_database
     deploy_backend
     deploy_auth
+    deploy_gitea
+    deploy_linkerd
+    deploy_gitops
     show_deployment_status
     print_status "Deployment completed!"
 }

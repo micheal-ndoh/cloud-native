@@ -83,6 +83,24 @@ This project sets up a complete cloud-native environment with:
    ./scripts/deploy.sh
    ```
 
+6. **Observability (Linkerd Viz)**:
+   - Open dashboard (requires Linkerd CLI):
+     ```bash
+     ./scripts/observability.sh dashboard
+     ```
+   - Or port-forward the web UI:
+     ```bash
+     ./scripts/observability.sh linkerd-viz port-forward
+     # then open http://localhost:8084
+     ```
+   - Useful checks:
+     ```bash
+     ./scripts/observability.sh checks
+     ./scripts/observability.sh _ stat backend task-api
+     ./scripts/observability.sh _ tap backend task-api
+     ./scripts/observability.sh _ routes backend task-api
+     ```
+
 ## Project Structure
 
 ```
@@ -140,6 +158,9 @@ cloud-native-gauntlet/
   - Swagger UI documentation
   - Role-based endpoint protection
   - Cloud-native deployment ready
+- **Gitea**: Self-hosted Git service with persistence enabled
+  - PVC `gitea-data` (5Gi) stores `/data`
+  - Ingress at `gitea.local`
 - **Database**: PostgreSQL cluster using CloudNativePG operator
   - High-availability configuration
   - Automated backups and recovery
@@ -154,12 +175,25 @@ cloud-native-gauntlet/
 - **deploy.sh**: Application deployment script
   - Deploys monitoring stack
   - Deploys applications to K3s cluster
+  - Applies ArgoCD Applications (GitOps) pointing at in-cluster Gitea
+  - Enables Linkerd sidecar injection and restarts workloads
 - **install-argocd.sh**: ArgoCD installation script for GitOps
 
 ### GitOps
 - **ArgoCD**: GitOps continuous deployment tool (installation script provided)
-- **Application Definitions**: ArgoCD application configurations for App1 and Monitoring
-- **Automated Sync**: Automatic deployment from Git changes (when fully implemented)
+- **Application Definitions**: Backend, Database, Keycloak, and Monitoring Applications
+- **Source**: In-cluster Gitea repo `http://gitea.gitea.svc.cluster.local:3000/admin/cloud-native-gauntlet.git`
+- **Automated Sync**: Enabled (prune + self-heal)
+
+## Images (offline)
+
+- Build and push backend image to local registry:
+  ```bash
+  cd apps/backend/task-api
+  chmod +x build-and-push.sh
+  ./build-and-push.sh
+  ```
+  Image tag used by Kubernetes: `registry.local:5000/task-api:latest`
 
 ## Troubleshooting
 
@@ -186,6 +220,13 @@ ping <master-ip>
 cd infrastruture/terraform
 terraform destroy -auto-approve
 ```
+
+## Access Endpoints
+
+- API: `http://task-api.local/api` (health: `/api/health`)
+- Keycloak: `http://keycloak.local/`
+- Gitea: `http://gitea.local/`
+- Linkerd Viz: `http://localhost:8084` (after port-forward)
 
 ## Contributing
 

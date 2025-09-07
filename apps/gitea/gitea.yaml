@@ -13,6 +13,7 @@ spec:
       labels:
         app: gitea
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: gitea
           image: registry.local:5000/gitea:latest
@@ -31,10 +32,30 @@ spec:
           volumeMounts:
             - name: gitea-data
               mountPath: /data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              memory: "512Mi"
+              ephemeral-storage: "512Mi"
       volumes:
         - name: gitea-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: gitea-data
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gitea-data
+  namespace: gitea
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
 apiVersion: v1
 kind: Service
 metadata:
