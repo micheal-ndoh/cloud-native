@@ -34,4 +34,4 @@ steps:
 # Trigger on all branches
 trigger:
   branch: [ main, master, develop, feature/* ]
-  event: [ push, pull_request ]
+  event: [ push, pull_request ]# Drone CI Pipeline
