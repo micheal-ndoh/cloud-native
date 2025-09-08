@@ -28,23 +28,7 @@ steps:
       - name: dockersock
         path: /var/run/docker.sock
 
-  - name: update-infra-repo
-    image: alpine/git:2.36.3
-    environment:
-      GIT_AUTHOR_NAME: drone-bot
-      GIT_AUTHOR_EMAIL: drone-bot@gitea.local
-      GIT_COMMITTER_NAME: drone-bot
-      GIT_COMMITTER_EMAIL: drone-bot@gitea.local
-      GITEA_USER: michealndoh
-    secrets: [ gitea_token ]
-    commands:
-      - sh -lc 'set -euo pipefail'
-      - sh -lc 'IMAGE_TAG=${DRONE_COMMIT_SHA:0:7}; export IMAGE_TAG'
-      - sh -lc 'REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"; git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra'
-      - sh -lc 'cd infra && sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
-      - sh -lc 'cd infra && git add apps/backend/task-api-deployment.yaml || true'
-      - sh -lc 'cd infra && git -c user.name="$GIT_AUTHOR_NAME" -c user.email="$GIT_AUTHOR_EMAIL" commit -m "ci: bump task-api image to ${IMAGE_TAG}" || echo "No changes to commit"'
-      - sh -lc 'cd infra && git push origin HEAD:main || true'
+  # TODO: Re-enable infra update once secret parsing is stable
 
 trigger:
   branch: [ main ]
