@@ -31,6 +31,8 @@ spec:
                   key: DRONE_RPC_SECRET
             - name: DRONE_RUNNER_CAPACITY
               value: "2"
+            - name: DRONE_RUNNER_PRIVILEGED_IMAGES
+              value: plugins/docker
           volumeMounts:
             - name: dockersock
               mountPath: /var/run/docker.sock

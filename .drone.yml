@@ -31,8 +31,8 @@ steps:
   # TODO: Re-enable infra update once secret parsing is stable
 
 trigger:
-  branch: [ main ]
-  event: [ push ]
+  branch: [ main, test ]
+  event: [ push, custom ]
 
 volumes:
   - name: dockersock
