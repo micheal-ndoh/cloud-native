@@ -40,14 +40,12 @@ steps:
       GITEA_TOKEN:
         from_secret: gitea_token
     commands:
-      - set -euo pipefail
-      - REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"
-      - git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra
-      - cd infra
-      - sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml
-      - git add apps/backend/task-api-deployment.yaml || true
-      - git -c user.name="$GIT_AUTHOR_NAME" -c user.email="$GIT_AUTHOR_EMAIL" commit -m "ci: bump task-api image to ${IMAGE_TAG}" || echo "No changes to commit"
-      - git push origin HEAD:main || true
+      - sh -lc 'set -euo pipefail'
+      - sh -lc 'REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"; git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra'
+      - sh -lc 'cd infra && sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
+      - sh -lc 'cd infra && git add apps/backend/task-api-deployment.yaml || true'
+      - sh -lc 'cd infra && git -c user.name="$GIT_AUTHOR_NAME" -c user.email="$GIT_AUTHOR_EMAIL" commit -m "ci: bump task-api image to ${IMAGE_TAG}" || echo "No changes to commit"'
+      - sh -lc 'cd infra && git push origin HEAD:main || true'
 
 trigger:
   branch: [ main ]
