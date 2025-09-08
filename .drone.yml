@@ -37,9 +37,8 @@ steps:
       GIT_COMMITTER_EMAIL: drone-bot@gitea.local
       GITEA_USER: michealndoh
       IMAGE_TAG: ${DRONE_COMMIT_SHA:0:7}
-    secrets:
-      - source: gitea_token
-        target: GITEA_TOKEN
+      GITEA_TOKEN:
+        from_secret: gitea_token
     commands:
       - set -euo pipefail
       - REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"
