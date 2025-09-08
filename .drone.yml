@@ -2,6 +2,11 @@ kind: pipeline
 type: docker
 name: backend-ci
 
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
 steps:
   # Rust checks and tests
   - name: rust-checks
@@ -19,7 +24,8 @@ steps:
   - name: docker-build-push
     image: docker:24
     volumes:
-      - dockersock # Correct syntax
+      - name: dockersock
+        path: /var/run/docker.sock  # Correct syntax for a volume mount in a step
     environment:
       IMAGE_REGISTRY: registry.local:5000
     commands:
@@ -56,8 +62,3 @@ steps:
 trigger:
   branch: [ main ]
   event: [ push ]
-
-volumes:
-  - name: dockersock
-    host:
-      path: /var/run/docker.sock
