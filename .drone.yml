@@ -20,7 +20,6 @@ steps:
     image: docker:24
     volumes:
       - name: dockersock
-        path: /var/run/docker.sock
     environment:
       IMAGE_REGISTRY: registry.local:5000
     commands:
