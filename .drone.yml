@@ -19,7 +19,7 @@ steps:
   - name: docker-build-push
     image: docker:24
     volumes:
-      - name: dockersock
+      - dockersock # Correct syntax
     environment:
       IMAGE_REGISTRY: registry.local:5000
     commands:
