@@ -40,7 +40,8 @@ steps:
     commands:
       - 'set -euo pipefail'
       - 'IMAGE_TAG=$(echo ${DRONE_COMMIT_SHA} | cut -c1-7)'
-      - 'REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"'
+      - 'REPO_URL="http://gitea.local/michealndoh/Cloud-native-infra.git"'
+      - '[ -n "${GITEA_USER:-}" ] && [ -n "${GITEA_TOKEN:-}" ] || { echo "ERROR: Missing GITEA_USER/GITEA_TOKEN secrets"; exit 1; }'
       - 'git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra'
       - 'cd infra'
       - 'sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
