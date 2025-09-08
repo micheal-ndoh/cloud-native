@@ -36,11 +36,10 @@ steps:
       GIT_COMMITTER_NAME: drone-bot
       GIT_COMMITTER_EMAIL: drone-bot@gitea.local
       GITEA_USER: michealndoh
-      IMAGE_TAG: ${DRONE_COMMIT_SHA:0:7}
-      GITEA_TOKEN:
-        from_secret: gitea_token
+    secrets: [ gitea_token ]
     commands:
       - sh -lc 'set -euo pipefail'
+      - sh -lc 'IMAGE_TAG=${DRONE_COMMIT_SHA:0:7}; export IMAGE_TAG'
       - sh -lc 'REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"; git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra'
       - sh -lc 'cd infra && sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
       - sh -lc 'cd infra && git add apps/backend/task-api-deployment.yaml || true'
