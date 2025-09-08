@@ -45,7 +45,7 @@ start_pf() {
 	echo "[OK] ${ns} ${target_ref} ${local_port}:${remote_port} (pid ${pid}) | log: ${log_file}"
 }
 
-echo "Starting common port-forwards..."
+echo "Starting required port-forwards (3000, 9090, 8084)..."
 
 # Monitoring: Prometheus (monitoring/prometheus -> 9090)
 start_pf monitoring svc prometheus 9090 9090
@@ -54,35 +54,15 @@ start_pf monitoring svc prometheus 9090 9090
 # Use dynamic pod selection to avoid service/mesh quirks
 start_pf monitoring pod grafana 3000 3000 "app=grafana"
 
-# CD: Argo CD server (argocd/argocd-server -> 8080)
-start_pf argocd svc argocd-server 8080 80
-
-# Git: Gitea (gitea/gitea -> 3001 since 3000 is Grafana)
-start_pf gitea svc gitea 3001 3000
-
-# Auth: Keycloak (keycloak/keycloak -> 8081)
-start_pf keycloak svc keycloak 8081 80
-
-# CI: Drone Server (ci/drone-server -> 8082)
-start_pf ci svc drone-server 8082 80
-
-# App: Task API (backend/task-api -> 8083)
-start_pf backend svc task-api 8083 3000
-
 # Service Mesh UI: Linkerd Viz Web (linkerd-viz/web -> 8084)
 start_pf linkerd-viz svc web 8084 8084
 
 cat <<'URLS'
 
 Local URLs (if forwards started):
-- Prometheus:           http://localhost:9090/graph
-- Grafana:              http://localhost:3000/
-- Argo CD:              http://localhost:8080/
-- Gitea:                http://localhost:3001/
-- Keycloak:             http://localhost:8081/
-- Drone:                http://localhost:8082/
-- Task API (service):   http://localhost:8083/
-- Linkerd Dashboard:    http://localhost:8084/
+- Prometheus:        http://localhost:9090/graph
+- Grafana:           http://localhost:3000/
+- Linkerd Dashboard: http://localhost:8084/
 
 Tip: To stop all forwards started from this shell session, use `pkill -f "kubectl .* port-forward"`.
 URLS
