@@ -14,6 +14,6 @@ pub async fn health() -> Json<serde_json::Value> {
     
     Json(json!({
         "status": "Active",
-        "version": "v2"
+        "version": "v3"
     }))
 }
