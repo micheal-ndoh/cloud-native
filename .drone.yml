@@ -18,8 +18,9 @@ steps:
     image: plugins/docker:20
     privileged: true
     settings:
-      repo: registry.local:5000/task-api
-      registry: registry.local:5000
+      repo: 10.38.229.242:5000/task-api
+      registry: 10.38.229.242:5000
+      insecure: true
       dockerfile: apps/backend/task-api/Dockerfile
       context: apps/backend/task-api
       tags:
