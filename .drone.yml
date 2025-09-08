@@ -4,7 +4,7 @@ name: backend-ci
 
 steps:
   - name: rust-checks
-    image: rust:1.75
+    image: rust:1.85
     environment:
       CARGO_TERM_COLOR: always
     commands:
