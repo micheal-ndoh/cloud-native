@@ -10,7 +10,7 @@ metadata:
   namespace: ci
 type: Opaque
 stringData:
-  DRONE_GITEA_CLIENT_ID: "3da300e6-d959-4ce4-bd6f-61d617ac058d"
+  DRONE_GITEA_CLIENT_ID: "3da300e6-d959-4ce4-bd6f-61d67ac058d"
   DRONE_GITEA_CLIENT_SECRET: "gto_kk2edmg6e2zharziciog6dxli627r4yfllnrdqf3oarhubbkyalq"
   DRONE_RPC_SECRET: "supersecret"
 ---

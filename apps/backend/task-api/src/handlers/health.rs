@@ -13,6 +13,7 @@ pub async fn health() -> Json<serde_json::Value> {
     debug!("Health check requested");
     
     Json(json!({
-        "status": "Active"
+        "status": "Active",
+        "version": "v2"
     }))
 }
