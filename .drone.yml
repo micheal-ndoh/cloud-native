@@ -15,18 +15,18 @@ steps:
       - cargo test --locked
 
   - name: docker-build-push
-    image: docker:24
+    image: plugins/docker:20
+    privileged: true
+    settings:
+      repo: registry.local:5000/task-api
+      registry: registry.local:5000
+      dockerfile: apps/backend/task-api/Dockerfile
+      context: apps/backend/task-api
+      tags:
+        - ${DRONE_COMMIT_SHA:0:7}
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
-    environment:
-      IMAGE_REGISTRY: registry.local:5000
-    commands:
-      - set -euo pipefail
-      - IMAGE_TAG=$(echo ${DRONE_COMMIT_SHA} | cut -c1-7)
-      - echo "Using tag: ${IMAGE_TAG}"
-      - cd apps/backend/task-api
-      - ./build-and-push.sh "$IMAGE_TAG"
 
   - name: update-infra-repo
     image: alpine/git:2.36.3
@@ -36,11 +36,12 @@ steps:
       GIT_COMMITTER_NAME: drone-bot
       GIT_COMMITTER_EMAIL: drone-bot@gitea.local
       GITEA_USER: michealndoh
-      GITEA_TOKEN:
-        from_secret: gitea_token
+      IMAGE_TAG: ${DRONE_COMMIT_SHA:0:7}
+    secrets:
+      - source: gitea_token
+        target: GITEA_TOKEN
     commands:
       - set -euo pipefail
-      - IMAGE_TAG=$(echo ${DRONE_COMMIT_SHA} | cut -c1-7)
       - REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"
       - git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra
       - cd infra
