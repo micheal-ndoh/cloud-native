@@ -33,17 +33,11 @@ steps:
       GIT_AUTHOR_EMAIL: drone-bot@gitea.local
       GIT_COMMITTER_NAME: drone-bot
       GIT_COMMITTER_EMAIL: drone-bot@gitea.local
-    secrets:
-      - source: gitea_user
-        target: GITEA_USER
-      - source: gitea_token
-        target: GITEA_TOKEN
     commands:
       - 'set -euo pipefail'
       - 'IMAGE_TAG=$(echo ${DRONE_COMMIT_SHA} | cut -c1-7)'
-      - 'REPO_URL="http://gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"'
-      - '[ -n "${GITEA_USER:-}" ] && [ -n "${GITEA_TOKEN:-}" ] || { echo "ERROR: Missing GITEA_USER/GITEA_TOKEN secrets"; exit 1; }'
-      - 'git clone "http://${GITEA_USER}:${GITEA_TOKEN}@${REPO_URL#http://}" infra'
+      - 'REPO_URL_WITH_AUTH="http://michealndoh:89d192d125811a493ae841b42628e3bc7283af16@gitea.gitea.svc.cluster.local:3000/michealndoh/Cloud-native-infra.git"'
+      - 'git clone "${REPO_URL_WITH_AUTH}" infra'
       - 'cd infra'
       - 'sed -i "s|registry.local:5000/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
       - 'git status --porcelain | grep . || { echo "No changes to commit"; exit 0; }'
