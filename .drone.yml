@@ -24,9 +24,9 @@ steps:
   # Build and push Docker image to local registry with commit tag
   - name: docker-build-push
     image: docker:24
-    # Reference the global volume by its name. This is the correct, simple syntax.
     volumes:
-      - dockersock 
+      - name: dockersock
+        path: /var/run/docker.sock
     environment:
       IMAGE_REGISTRY: registry.local:5000
     commands:
