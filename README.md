@@ -56,7 +56,7 @@ flowchart LR
     end
   end
 
-  user -->|HTTP(S)| ingress
+  user -->|HTTP/HTTPS| ingress
   ingress -->|host: task-api.local| api
   ingress -->|host: keycloak.local| kc
   api --> cnpg
@@ -73,7 +73,7 @@ Status aligned with “Twelve Trials”. Checked items are implemented; unchecke
   - [x] VMs via Multipass (Terraform)
   - [x] Configure K3s with Ansible
   - [x] Offline prep (hosts helper in deploy script)
-  - [ ] Pre-pull images/local registry workflow documentation (partial)
+  - [x] Pre-pull images/local registry workflow documentation
 - Day 3-4: Application
   - [x] Rust Axum API with JWT auth, tasks, logging
   - [x] Postgres integration via CNPG
@@ -109,39 +109,43 @@ Victory conditions summary:
 Requirements: Linux, Terraform, Ansible, Multipass, kubectl, jq, ssh-key, linkerd CLI (optional), 8+ GB RAM.
 
 1) Clone
-```bash
-git clone <REPO_URL> cloud-native-gauntlet
-cd cloud-native-gauntlet
-```
+   ```bash
+git clone https://github.com/micheal-ndoh/cloud-native.git
+   cd cloud-native
+   ```
 
 2) Bootstrap infra and K3s
-```bash
+   ```bash
 chmod +x scripts/*.sh
-./scripts/setup.sh
-```
+   ./scripts/setup.sh
+   ```
 
 3) Install Argo CD (optional now, required for GitOps)
-```bash
-chmod +x gitops/scripts/install-argocd.sh
-./gitops/scripts/install-argocd.sh
-```
+   ```bash
+   chmod +x gitops/scripts/install-argocd.sh
+   ./gitops/scripts/install-argocd.sh
+   ```
 
 4) Deploy apps (DB, API, Keycloak, Gitea, GitOps apps, Drone, Linkerd labels)
-```bash
-./scripts/deploy.sh
-```
+   ```bash
+   ./scripts/deploy.sh
+   ```
 
 5) Hosts entries (ingress hosts resolved to master IP)
-```bash
+     ```bash
 ./scripts/deploy.sh   # this script will ensure /etc/hosts has: task-api.local keycloak.local gitea.local registry.local drone.local
 # If needed manually:
 # echo "<MASTER_IP> task-api.local keycloak.local gitea.local registry.local drone.local" | sudo tee -a /etc/hosts
 ```
 
 6) Optional: Observability helpers
-```bash
-./scripts/observability.sh checks
+     ```bash
+     ./scripts/observability.sh checks
 ./scripts/port-forward-all.sh
+# Argo CD UI (separate port-forward)
+kubectl -n argocd port-forward svc/argocd-server 8080:443 &
+# Open https://localhost:8080 (user: admin; password below)
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 # Then open:
 # - http://localhost:9090 (Prometheus)
 # - http://localhost:3000 (Grafana)
@@ -149,9 +153,9 @@ chmod +x gitops/scripts/install-argocd.sh
 ```
 
 Local registry usage (offline builds)
-```bash
-cd apps/backend/task-api
-chmod +x build-and-push.sh
+  ```bash
+  cd apps/backend/task-api
+  chmod +x build-and-push.sh
 ./build-and-push.sh  # builds and pushes to registry.local:5000/task-api:latest
 ```
 

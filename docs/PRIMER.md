@@ -1,48 +1,80 @@
-# Cloud-Native Primer (Beginner Friendly)
+# Cloud‑Native Primer
 
-## What is a Cloud-Native Application?
-Think of software like a city. A traditional monolith is one giant building where everything happens inside. If the power fails, everything stops. A cloud-native app is a city of Lego-like buildings (microservices). Each building can be built, scaled, repaired, or replaced independently. The city has shared services like roads (networking), utilities (security, logging), and rules (automation) so the whole thing stays reliable as it grows.
+This primer introduces core concepts used in this repository using clear, standard terminology.
 
-Key traits:
-- Small, independent services
-- Automated deployment and recovery
-- Observable (easy to monitor)
-- Resilient by design
+## What is "Cloud‑Native"?
+Cloud‑native applications are designed to be:
+- Microservice‑oriented (independently deployable components)
+- Containerized (immutable, portable runtime images)
+- Dynamically orchestrated (scheduled/managed by platforms like Kubernetes)
+- Declaratively managed (infrastructure and configs defined as code)
 
-## Kubernetes Operators (with CloudNativePG)
-A Kubernetes Operator is like an automated human expert for a specific app inside the cluster. It watches for desired state (from YAML) and continuously makes reality match it.
+Reference: CNCF definition.
 
-CloudNativePG (CNPG) is an operator that manages PostgreSQL clusters:
-- Creates a Postgres cluster from a YAML file
-- Handles replication, failover, and backups
-- Exposes Postgres via Kubernetes Services
-- Automates upgrades and maintenance
+## Kubernetes Operator
+A Kubernetes Operator extends the Kubernetes control plane with domain knowledge to manage a specific application or component. It:
+- Watches Kubernetes resources (desired state)
+- Reconciles actual state to match desired state
+- Automates lifecycle tasks (install, upgrade, backup, failover)
 
-You declare the DB you want; CNPG keeps it healthy.
+### CloudNativePG (PostgreSQL Operator)
+CloudNativePG manages PostgreSQL clusters natively on Kubernetes:
+- Creates/maintains primary/replica topology via CRDs
+- Handles automated failover and rolling upgrades
+- Exposes services for read/write access
+- Integrates with backups, WAL archiving, and recovery
+
+Outcome: You declare a PostgreSQL cluster in YAML; the operator keeps it healthy and up‑to‑date.
 
 ## GitOps and Argo CD
-GitOps means using Git as the single source of truth for both app and infra configuration. Instead of clicking in a UI, you commit YAML to a repo.
+GitOps is the practice of using Git as the single source of truth for infrastructure and application configuration. The desired state is stored in Git; automation continuously applies that state to the cluster.
 
-Argo CD is the robot gardener: it constantly compares the cluster (the garden) with the Git repo (the blueprint). If something drifts, it prunes and fixes it.
+Argo CD is a GitOps controller that:
+- Monitors Git repositories for changes
+- Applies/rolls back Kubernetes manifests to match Git
+- Detects and corrects drift (self‑heal, optional prune)
+- Provides a UI/CLI for app status and syncs
 
-Benefits:
-- Every change is versioned in Git
-- Rollbacks are trivial
-- Safer, auditable deployments
+Outcome: Commit to Git → Argo CD reconciles the cluster to that commit.
 
 ## Service Mesh (Linkerd)
-A service mesh is a smart postal service for your data between services. It adds a sidecar proxy next to each pod and handles:
-- Security: mTLS encryption by default
-- Reliability: retries, timeouts
-- Observability: golden metrics, tap/inspect traffic
+A service mesh provides a dedicated layer for service‑to‑service communication, typically via sidecar proxies injected into pods. Linkerd focuses on:
+- Security: mutual TLS (mTLS) by default, identity, policy
+- Reliability: timeouts, retries, load balancing
+- Observability: golden metrics, tap, routes, dashboards
 
-You get these capabilities without changing application code. Linkerd provides commands and a dashboard (viz) to see traffic and health.
+Outcome: Uniform networking, security, and telemetry without changing application code.
 
-## How It Fits Together Here
-- CNPG runs PostgreSQL used by the Rust Task API
-- Keycloak issues tokens; the API enforces auth
-- Argo CD pulls manifests from Git and applies them
-- Linkerd injects sidecars into namespaces for mesh features
-- Prometheus/Grafana and Linkerd viz provide visibility
+## Identity and Access (JWT/OIDC/Keycloak)
+- OpenID Connect (OIDC): identity layer on top of OAuth 2.0 for authentication
+- JSON Web Token (JWT): signed token carrying claims (issuer, subject, expiry, roles)
+- Keycloak: identity provider (IdP) issuing JWTs for clients within a realm
+- Flow used here: Resource Owner Password Credentials (for local dev), then API validates JWT signature and claims (audience, issuer, expiry, roles)
 
-That’s the essence: declare intent in Git and YAML; operators and controllers keep reality aligned for a resilient, observable, secure system.
+Outcome: Users authenticate with Keycloak → receive JWT → present JWT to the API → API authorizes based on claims/roles.
+
+## Glossary (Kubernetes)
+- CRD (CustomResourceDefinition): defines a new resource type (e.g., `Cluster` for CNPG)
+- Controller: program that reconciles actual cluster state to the desired state
+- Reconcile loop: repeated evaluation/apply cycle to converge on desired state
+- Desired state: config in YAML/Helm/Kustomize or generated by GitOps
+- Workload: a running application (Deployment, StatefulSet, Job)
+- Service: stable virtual IP/DNS for reaching pods
+- Ingress: HTTP(S) routing into cluster services
+
+## How These Fit Together in This Project
+- CloudNativePG provides PostgreSQL for the Rust Task API
+- Keycloak issues JWTs; the API validates tokens and enforces authorization
+- Argo CD reconciles cluster state from Git (app and infra manifests)
+- Linkerd injects sidecars for security and observability
+- Prometheus/Grafana and Linkerd Viz expose metrics and dashboards
+
+## References
+- CNCF: https://www.cncf.io
+- Kubernetes docs: https://kubernetes.io/docs/home/
+- GitOps (Weaveworks): https://www.gitops.tech
+- Argo CD: https://argo-cd.readthedocs.io
+- CloudNativePG: https://cloudnative-pg.io
+- Linkerd: https://linkerd.io
+- OpenID Connect: https://openid.net/specs/openid-connect-core-1_0.html
+- JWT (RFC 7519): https://www.rfc-editor.org/rfc/rfc7519
