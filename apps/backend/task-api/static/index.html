@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Task API</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; margin: 2rem; }
+    .container { max-width: 720px; margin: 0 auto; }
+    a { color: #0b5fff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.25rem; margin: 1rem 0; }
+    h1 { margin: 0 0 0.5rem; }
+    code { background: #f3f4f6; padding: 0.1rem 0.3rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Task API</h1>
+    <p>Welcome. This is a minimal frontend for the Task API.</p>
+
+    <div class="card">
+      <h3>Docs</h3>
+      <p>Open the interactive API docs.</p>
+      <p><a href="/swagger-ui">/swagger-ui</a> or <a href="/docs">/docs</a></p>
+    </div>
+
+    <div class="card">
+      <h3>Health</h3>
+      <p>Quick health check endpoint.</p>
+      <p><a href="/api/health">/api/health</a></p>
+    </div>
+
+    <div class="card">
+      <h3>Tasks</h3>
+      <p>Protected endpoints (require JWT).</p>
+      <ul>
+        <li>GET <code>/api/tasks</code></li>
+        <li>POST <code>/api/tasks</code></li>
+        <li>DELETE <code>/api/tasks/{id}</code></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

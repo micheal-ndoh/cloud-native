@@ -1,10 +1,15 @@
-use axum::serve;
+use axum::{
+    serve,
+    response::Redirect,
+    routing::get_service,
+};
 use reqwest::Url;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
+use tower_http::services::ServeDir;
 
 mod handlers;
 mod models;
@@ -96,8 +101,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let keycloak_instance = Arc::new(KeycloakAuthInstance::new(keycloak_config));
     info!("Keycloak authentication initialized");
 
+    let static_service = get_service(ServeDir::new("static")).handle_error(|err| async move {
+        (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("static file error: {}", err))
+    });
+
     let app = routes::create_routes(state.clone(), keycloak_instance)
-        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()));
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
+        .route("/docs", axum::routing::get(|| async { Redirect::temporary("/swagger-ui") }))
+        .nest_service("/", static_service);
 
     let addr = format!("{}:{}", state.config.host, state.config.port);
     let listener = TcpListener::bind(&addr).await.map_err(|e| {
