@@ -112,19 +112,22 @@ ansible all -m shell -a "docker --version" -i inventory.ini
 #### 2.1 Rust Application Functionality
 ```bash
 # Test application endpoints
-curl http://task-api.local/health
-curl http://task-api.local/tasks
-curl http://task-api.local/docs  # Swagger UI
+curl http://task-api.local/api/health
+curl http://task-api.local/api/tasks  # requires auth; expect 401 if no token
+curl http://task-api.local/swagger-ui  # Swagger UI (or http://task-api.local/docs)
 
 # Test with authentication
-TOKEN=$(curl -s -X POST http://keycloak.local/auth/realms/master/protocol/openid-connect/token \
+TOKEN=$(curl -s -X POST "http://keycloak.local/realms/task-api-realm/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123&grant_type=password&client_id=task-api" | jq -r '.access_token')
+  -d "grant_type=password" \
+  -d "client_id=app-client" \
+  -d "username=admin" \
+  -d "password=admin123" | jq -r '.access_token')
 
-curl -H "Authorization: Bearer $TOKEN" http://task-api.local/tasks
-curl -H "Authorization: Bearer $TOKEN" -X POST http://task-api.local/tasks \
+curl -H "Authorization: Bearer $TOKEN" http://task-api.local/api/tasks
+curl -H "Authorization: Bearer $TOKEN" -X POST http://task-api.local/api/tasks \
   -H "Content-Type: application/json" \
-  -d '{"title":"Test Task","description":"Testing the API"}'
+  -d '{"name":"Test Task","description":"Testing the API"}'
 ```
 
 **Expected Results:**
@@ -138,8 +141,9 @@ curl -H "Authorization: Bearer $TOKEN" -X POST http://task-api.local/tasks \
 # Test database connectivity
 kubectl exec -it -n database $(kubectl get pods -n database -l postgresql.cnpg.io/cluster=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d tasks -c "SELECT COUNT(*) FROM tasks;"
 
-# Test database persistence
-kubectl exec -it -n database $(kubectl get pods -n database -l postgresql.cnpg.io/cluster=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d tasks -c "INSERT INTO tasks (id, title, description, user_id) VALUES (gen_random_uuid(), 'Test Task', 'Database Test', 'test-user');"
+# Test database persistence (adjust user_id to a valid UUID for your user)
+kubectl exec -it -n database $(kubectl get pods -n database -l postgresql.cnpg.io/cluster=postgres -o jsonpath='{.items[0].metadata.name}') -- \
+  psql -U postgres -d tasks -c "INSERT INTO tasks (id, name, description, user_id) VALUES (gen_random_uuid(), 'Test Task', 'Database Test', '00000000-0000-0000-0000-000000000000');"
 ```
 
 **Expected Results:**
@@ -153,15 +157,18 @@ kubectl exec -it -n database $(kubectl get pods -n database -l postgresql.cnpg.i
 #### 3.1 Keycloak Authentication Flow
 ```bash
 # Test Keycloak admin access
-curl http://keycloak.local/auth/admin/
+curl http://keycloak.local/admin/
 
 # Test realm configuration
-curl http://keycloak.local/auth/realms/master/.well-known/openid_configuration
+curl http://keycloak.local/realms/task-api-realm/.well-known/openid-configuration
 
 # Test user authentication
-curl -X POST http://keycloak.local/auth/realms/master/protocol/openid-connect/token \
+curl -X POST "http://keycloak.local/realms/task-api-realm/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123&grant_type=password&client_id=task-api"
+  -d "grant_type=password" \
+  -d "client_id=app-client" \
+  -d "username=admin" \
+  -d "password=admin123"
 ```
 
 **Expected Results:**
@@ -173,16 +180,19 @@ curl -X POST http://keycloak.local/auth/realms/master/protocol/openid-connect/to
 #### 3.2 JWT Token Validation
 ```bash
 # Test token validation
-TOKEN=$(curl -s -X POST http://keycloak.local/auth/realms/master/protocol/openid-connect/token \
+TOKEN=$(curl -s -X POST "http://keycloak.local/realms/task-api-realm/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=admin&password=admin123&grant_type=password&client_id=task-api" | jq -r '.access_token')
+  -d "grant_type=password" \
+  -d "client_id=app-client" \
+  -d "username=admin" \
+  -d "password=admin123" | jq -r '.access_token')
 
 # Decode token (without verification for testing)
 echo $TOKEN | cut -d. -f2 | base64 -d | jq .
 
 # Test protected endpoints
-curl -H "Authorization: Bearer $TOKEN" http://task-api.local/tasks
-curl -H "Authorization: Bearer invalid_token" http://task-api.local/tasks
+curl -H "Authorization: Bearer $TOKEN" http://task-api.local/api/tasks
+curl -H "Authorization: Bearer invalid_token" http://task-api.local/api/tasks
 ```
 
 **Expected Results:**
@@ -194,13 +204,13 @@ curl -H "Authorization: Bearer invalid_token" http://task-api.local/tasks
 #### 3.3 Role-Based Access Control (RBAC)
 ```bash
 # Test admin endpoints
-curl -H "Authorization: Bearer $ADMIN_TOKEN" http://task-api.local/admin/users
+curl -H "Authorization: Bearer $ADMIN_TOKEN" http://task-api.local/api/admin/users
 
 # Test user endpoints
-curl -H "Authorization: Bearer $USER_TOKEN" http://task-api.local/tasks
+curl -H "Authorization: Bearer $USER_TOKEN" http://task-api.local/api/tasks
 
 # Test unauthorized access
-curl -H "Authorization: Bearer $USER_TOKEN" http://task-api.local/admin/users
+curl -H "Authorization: Bearer $USER_TOKEN" http://task-api.local/api/admin/users
 ```
 
 **Expected Results:**
@@ -397,8 +407,8 @@ sudo iptables -A OUTPUT -d 8.8.8.8 -j DROP
 
 # Test system functionality
 kubectl get pods -A
-curl http://task-api.local/health
-curl http://keycloak.local/auth/admin/
+curl http://task-api.local/api/health
+curl http://keycloak.local/admin/
 
 # Re-enable internet
 sudo iptables -D OUTPUT -d 8.8.8.8 -j DROP
@@ -471,12 +481,12 @@ kubectl apply -f apps/auth/  # Should show no changes
 ```bash
 # Test API performance
 for i in {1..100}; do
-  curl -H "Authorization: Bearer $TOKEN" http://task-api.local/tasks &
+  curl -H "Authorization: Bearer $TOKEN" http://task-api.local/api/tasks &
 done
 wait
 
 # Check response times
-curl -w "@curl-format.txt" -H "Authorization: Bearer $TOKEN" http://task-api.local/tasks
+curl -w "@curl-format.txt" -H "Authorization: Bearer $TOKEN" http://task-api.local/api/tasks
 ```
 
 **Expected Results:**
@@ -602,8 +612,8 @@ kubectl get nodes
 kubectl get pods -A | grep -v Running
 
 echo "2. Application Health:"
-curl -s http://task-api.local/health | jq .
-curl -s http://keycloak.local/auth/admin/ | head -5
+curl -s http://task-api.local/api/health | jq .
+curl -s http://keycloak.local/admin/ | head -5
 
 echo "3. Service Mesh Health:"
 linkerd check

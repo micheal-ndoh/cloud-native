@@ -45,7 +45,7 @@
   <body>
     <div class="container">
       <h1>Task API</h1>
-      <p>Welcome. This is a minimal frontend for the Task API.</p>
+      <p>Simple frontend to authenticate with Keycloak and manage tasks.</p>
 
       <div class="card">
         <h3>Docs</h3>
@@ -62,16 +62,297 @@
       </div>
 
       <div class="card">
-        <h3>Tasks</h3>
-        <p>Protected endpoints (require JWT).</p>
-        <ul>
-          <li>GET <code>/api/tasks</code></li>
-          <li>POST <code>/api/tasks</code></li>
-          <li>DELETE <code>/api/tasks/{id}</code></li>
-        </ul>
+        <h3>Auth</h3>
+        <p class="muted">
+          Demo login uses Password Grant. For production use Authorization Code
+          flow.
+        </p>
+        <div style="display: grid; gap: 0.5rem; grid-template-columns: 1fr 1fr">
+          <label
+            >Keycloak Base (realm host)
+            <input
+              id="kcBase"
+              value="http://keycloak.local"
+              style="width: 100%"
+            />
+          </label>
+          <label
+            >Realm
+            <input id="kcRealm" value="task-api-realm" style="width: 100%" />
+          </label>
+          <label
+            >Client ID
+            <input id="kcClient" value="app-client" style="width: 100%" />
+          </label>
+          <label
+            >Client Secret (demo)
+            <input
+              id="kcSecret"
+              type="password"
+              value="JfEMV2NKLJ1l4awIjW8chcFpntEUvLXx"
+              style="width: 100%"
+            />
+          </label>
+          <label
+            >Username
+            <input id="kcUser" value="testuser" style="width: 100%" />
+          </label>
+          <label
+            >Password
+            <input
+              id="kcPass"
+              type="password"
+              value="testpass"
+              style="width: 100%"
+            />
+          </label>
+        </div>
+        <div
+          style="
+            margin-top: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+          "
+        >
+          <button id="btnLogin">Login</button>
+          <button id="btnLogout" disabled>Logout</button>
+          <span id="authStatus" class="muted">Not authenticated</span>
+        </div>
+        <pre
+          id="tokenPreview"
+          class="muted"
+          style="
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin-top: 0.5rem;
+          "
+        ></pre>
       </div>
 
-      <p class="muted">Updated to trigger CI/CD.</p>
+      <div class="card">
+        <h3>Tasks</h3>
+        <div style="display: flex; gap: 0.5rem; align-items: center">
+          <input id="taskName" placeholder="Task name" />
+          <input id="taskDesc" placeholder="Description (optional)" />
+          <button id="btnCreate" disabled>Create</button>
+          <button id="btnRefresh" disabled>Refresh</button>
+        </div>
+        <div
+          id="tasksEmpty"
+          class="muted"
+          style="margin-top: 0.75rem; display: none"
+        >
+          No tasks yet.
+        </div>
+        <table
+          id="tasksTable"
+          style="
+            width: 100%;
+            margin-top: 0.75rem;
+            border-collapse: collapse;
+            display: none;
+          "
+        >
+          <thead>
+            <tr>
+              <th
+                style="
+                  text-align: left;
+                  border-bottom: 1px solid #e5e7eb;
+                  padding: 0.25rem 0.5rem;
+                "
+              >
+                Name
+              </th>
+              <th
+                style="
+                  text-align: left;
+                  border-bottom: 1px solid #e5e7eb;
+                  padding: 0.25rem 0.5rem;
+                "
+              >
+                Description
+              </th>
+              <th
+                style="
+                  text-align: left;
+                  border-bottom: 1px solid #e5e7eb;
+                  padding: 0.25rem 0.5rem;
+                "
+              >
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody id="tasksBody"></tbody>
+        </table>
+      </div>
+
+      <p class="muted">
+        Tip: API docs at <a href="/swagger-ui">/swagger-ui</a>
+      </p>
     </div>
+    <script>
+      const state = {
+        token: null,
+      };
+
+      const els = {
+        btnLogin: document.getElementById("btnLogin"),
+        btnLogout: document.getElementById("btnLogout"),
+        authStatus: document.getElementById("authStatus"),
+        tokenPreview: document.getElementById("tokenPreview"),
+        btnCreate: document.getElementById("btnCreate"),
+        btnRefresh: document.getElementById("btnRefresh"),
+        taskName: document.getElementById("taskName"),
+        taskDesc: document.getElementById("taskDesc"),
+        tasksEmpty: document.getElementById("tasksEmpty"),
+        tasksTable: document.getElementById("tasksTable"),
+        tasksBody: document.getElementById("tasksBody"),
+        kcBase: document.getElementById("kcBase"),
+        kcRealm: document.getElementById("kcRealm"),
+        kcClient: document.getElementById("kcClient"),
+        kcSecret: document.getElementById("kcSecret"),
+        kcUser: document.getElementById("kcUser"),
+        kcPass: document.getElementById("kcPass"),
+      };
+
+      function setAuthed(on) {
+        els.btnLogout.disabled = !on;
+        els.btnCreate.disabled = !on;
+        els.btnRefresh.disabled = !on;
+        els.authStatus.textContent = on ? "Authenticated" : "Not authenticated";
+        els.tokenPreview.textContent = on
+          ? state.token?.slice(0, 40) + "…"
+          : "";
+      }
+
+      async function login() {
+        const url = `${els.kcBase.value}/realms/${els.kcRealm.value}/protocol/openid-connect/token`;
+        const params = new URLSearchParams();
+        params.set("grant_type", "password");
+        params.set("client_id", els.kcClient.value);
+        const secret = els.kcSecret.value.trim();
+        if (secret) params.set("client_secret", secret);
+        params.set("username", els.kcUser.value.trim());
+        params.set("password", els.kcPass.value);
+
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params,
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => "");
+          alert("Login failed: " + text);
+          return;
+        }
+        const data = await res.json();
+        state.token = data.access_token || null;
+        setAuthed(!!state.token);
+        if (state.token) await refreshTasks();
+      }
+
+      function logout() {
+        state.token = null;
+        setAuthed(false);
+        els.tasksBody.innerHTML = "";
+        els.tasksTable.style.display = "none";
+        els.tasksEmpty.style.display = "none";
+      }
+
+      async function refreshTasks() {
+        try {
+          const res = await fetch("/api/tasks", {
+            headers: { Authorization: `Bearer ${state.token}` },
+          });
+          if (!res.ok) throw new Error(await res.text());
+          const body = await res.json();
+          const tasks = body?.data?.tasks || [];
+          renderTasks(tasks);
+        } catch (e) {
+          alert("Failed to load tasks: " + e);
+        }
+      }
+
+      function renderTasks(tasks) {
+        els.tasksBody.innerHTML = "";
+        if (!tasks.length) {
+          els.tasksEmpty.style.display = "block";
+          els.tasksTable.style.display = "none";
+          return;
+        }
+        els.tasksEmpty.style.display = "none";
+        els.tasksTable.style.display = "table";
+        for (const t of tasks) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td style="padding:.25rem .5rem; border-bottom:1px solid #f1f5f9;">${escapeHtml(
+              t.name
+            )}</td>
+            <td style="padding:.25rem .5rem; border-bottom:1px solid #f1f5f9;">${escapeHtml(
+              t.description || ""
+            )}</td>
+            <td style="padding:.25rem .5rem; border-bottom:1px solid #f1f5f9;">
+              <button data-id="${t.id}">Delete</button>
+            </td>
+          `;
+          tr.querySelector("button").addEventListener("click", () =>
+            deleteTask(t.id)
+          );
+          els.tasksBody.appendChild(tr);
+        }
+      }
+
+      async function createTask() {
+        const name = els.taskName.value.trim();
+        const description = els.taskDesc.value.trim() || null;
+        if (!name) return alert("Task name is required");
+        try {
+          const res = await fetch("/api/tasks", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${state.token}`,
+            },
+            body: JSON.stringify({ name, description }),
+          });
+          if (!res.ok) throw new Error(await res.text());
+          els.taskName.value = "";
+          els.taskDesc.value = "";
+          await refreshTasks();
+        } catch (e) {
+          alert("Failed to create task: " + e);
+        }
+      }
+
+      async function deleteTask(id) {
+        if (!confirm("Delete this task?")) return;
+        try {
+          const res = await fetch(`/api/tasks/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${state.token}` },
+          });
+          if (!res.ok && res.status !== 204) throw new Error(await res.text());
+          await refreshTasks();
+        } catch (e) {
+          alert("Failed to delete task: " + e);
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"]+/g,
+          (c) =>
+            ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c] || c)
+        );
+      }
+
+      els.btnLogin.addEventListener("click", login);
+      els.btnLogout.addEventListener("click", logout);
+      els.btnRefresh.addEventListener("click", refreshTasks);
+      els.btnCreate.addEventListener("click", createTask);
+    </script>
   </body>
 </html>

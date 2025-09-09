@@ -11,7 +11,65 @@ spec:
       containers:
         - name: kc-bootstrap
           image: registry.local:5000/keycloak:latest
-          command: ["bash", "/bootstrap/bootstrap.sh"]
+          command: ["bash", "-lc"]
+          args:
+            - |
+              # Ensure kcadm is authenticated (wait loop via kcadm, not curl)
+              for i in {1..60}; do
+                if /opt/keycloak/bin/kcadm.sh config credentials --server "${KEYCLOAK_URL}" --realm master --user "${KEYCLOAK_ADMIN}" --password "${KEYCLOAK_ADMIN_PASSWORD}" >/dev/null 2>&1; then
+                  break
+                fi
+                echo "Keycloak not ready yet... retrying ($i/60)"
+                sleep 5
+              done
+              # Ensure realm exists
+              if ! /opt/keycloak/bin/kcadm.sh get realms/${KEYCLOAK_REALM} >/dev/null 2>&1; then
+                /opt/keycloak/bin/kcadm.sh create realms -s realm="${KEYCLOAK_REALM}" -s enabled=true
+              fi
+              # Ensure client exists and has password grant enabled
+              CLIENT_UUID=$(/opt/keycloak/bin/kcadm.sh get clients -r ${KEYCLOAK_REALM} -q clientId=${KEYCLOAK_CLIENT_ID} --fields id --format csv --noquotes || true)
+              if [ -z "${CLIENT_UUID}" ]; then
+                /opt/keycloak/bin/kcadm.sh create clients -r ${KEYCLOAK_REALM} \
+                  -s clientId="${KEYCLOAK_CLIENT_ID}" \
+                  -s protocol=openid-connect \
+                  -s publicClient=false \
+                  -s serviceAccountsEnabled=true \
+                  -s directAccessGrantsEnabled=true \
+                  -s standardFlowEnabled=true \
+                  -s 'redirectUris=["*"]' \
+                  -s 'webOrigins=["*"]' || true
+                CLIENT_UUID=$(/opt/keycloak/bin/kcadm.sh get clients -r ${KEYCLOAK_REALM} -q clientId=${KEYCLOAK_CLIENT_ID} --fields id --format csv --noquotes || true)
+              fi
+              if [ -n "${CLIENT_UUID}" ]; then
+                /opt/keycloak/bin/kcadm.sh update clients/${CLIENT_UUID} -r ${KEYCLOAK_REALM} \
+                  -s publicClient=false \
+                  -s serviceAccountsEnabled=true \
+                  -s directAccessGrantsEnabled=true \
+                  -s standardFlowEnabled=true \
+                  -s 'redirectUris=["*"]' \
+                  -s 'webOrigins=["*"]' || true
+                if [ -n "${KEYCLOAK_ADMIN_CLIENT_SECRET:-}" ]; then
+                  /opt/keycloak/bin/kcadm.sh update clients/${CLIENT_UUID} -r ${KEYCLOAK_REALM} -s secret="${KEYCLOAK_ADMIN_CLIENT_SECRET}" || true
+                fi
+              fi
+              # Ensure test user exists and is fully set up
+              if ! /opt/keycloak/bin/kcadm.sh get users -r ${KEYCLOAK_REALM} -q username=testuser | grep -q '"username"'; then
+                /opt/keycloak/bin/kcadm.sh create users -r ${KEYCLOAK_REALM} -s username=testuser -s enabled=true || true
+              fi
+              USER_ID=$(/opt/keycloak/bin/kcadm.sh get users -r ${KEYCLOAK_REALM} -q username=testuser --fields id --format csv --noquotes || true)
+              if [ -n "${USER_ID}" ]; then
+                /opt/keycloak/bin/kcadm.sh set-password -r ${KEYCLOAK_REALM} --userid ${USER_ID} --new-password testpass --temporary=false || true
+                # Ensure user has no required actions and is verified with an email set
+                /opt/keycloak/bin/kcadm.sh update users/${USER_ID} -r ${KEYCLOAK_REALM} \
+                  -s enabled=true \
+                  -s username=testuser \
+                  -s firstName=Test \
+                  -s lastName=User \
+                  -s email=testuser@example.local \
+                  -s emailVerified=true \
+                  -s requiredActions=[] || true
+                /opt/keycloak/bin/kcadm.sh add-roles -r ${KEYCLOAK_REALM} --uid ${USER_ID} --rolename User || true
+              fi
           envFrom:
             - configMapRef:
                 name: keycloak-config

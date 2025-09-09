@@ -27,4 +27,4 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 
 ## Notes
 - Argo CD monitors repo URLs specified in the application specs under `argocd/applications/`.
-- Use the root README for the golden path and verification steps.
+- Use the root README for the golden path and verification steps.****

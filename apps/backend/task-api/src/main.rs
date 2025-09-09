@@ -101,7 +101,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let keycloak_instance = Arc::new(KeycloakAuthInstance::new(keycloak_config));
     info!("Keycloak authentication initialized");
 
-    let static_service = get_service(ServeDir::new("static")).handle_error(|err| async move {
+    let static_service = get_service(
+        ServeDir::new("static").append_index_html_on_directories(true),
+    )
+    .handle_error(|err| async move {
         (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("static file error: {}", err))
     });
 
