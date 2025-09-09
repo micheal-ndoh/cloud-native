@@ -4,7 +4,7 @@ name: backend-ci
 
 steps:
   - name: rust-checks
-    image: rust:1.85
+    image: registry.local:5000/rust:1.85
     environment:
       CARGO_TERM_COLOR: always
     commands:
@@ -15,7 +15,7 @@ steps:
       - cargo test --locked
 
   - name: docker-build-push
-    image: plugins/docker:20
+    image: registry.local:5000/plugins-docker:20
     privileged: true
     settings:
       repo: registry.local:5000/task-api
@@ -23,11 +23,14 @@ steps:
       insecure: true
       dockerfile: apps/backend/task-api/Dockerfile
       context: apps/backend/task-api
+      build_args:
+        - RUST_BASE=registry.local:5000/rust:1.85
+        - RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
       tags:
         - ${DRONE_COMMIT_SHA:0:7}
 
   - name: update-infra-repo
-    image: alpine/git:2.36.3
+    image: registry.local:5000/alpine-git:2.36.3
     environment:
       GIT_AUTHOR_NAME: drone-bot
       GIT_AUTHOR_EMAIL: drone-bot@gitea.local

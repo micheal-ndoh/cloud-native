@@ -1,5 +1,6 @@
 # Build stage
-FROM rust:1.85 AS builder
+ARG RUST_BASE=registry.local:5000/rust:1.85
+FROM ${RUST_BASE} AS builder
 
 WORKDIR /app
 
@@ -16,7 +17,8 @@ RUN cargo build --release
 
 
 # Runtime stage
-FROM debian:bookworm-slim AS runtime
+ARG RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
+FROM ${RUNTIME_BASE} AS runtime
 
 # Install required libraries
 RUN apt-get update && apt-get install -y \
