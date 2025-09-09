@@ -7,12 +7,19 @@ steps:
     image: registry.local:5000/rust:1.85
     environment:
       CARGO_TERM_COLOR: always
+      CARGO_HOME: /cargo-home
+      CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
     commands:
       - cd apps/backend/task-api
       - rustc --version; cargo --version
       - cargo fetch
       - cargo build --locked
       - cargo test --locked
+    volumes:
+      - name: cargo-home
+        path: /cargo-home
+      - name: task-api-target
+        path: /drone/src/apps/backend/task-api/target
 
   - name: docker-build-push
     image: registry.local:5000/plugins-docker:20
@@ -24,10 +31,13 @@ steps:
       dockerfile: apps/backend/task-api/Dockerfile
       context: apps/backend/task-api
       build_args:
-        - RUST_BASE=registry.local:5000/rust:1.85
-        - RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
+        - RUST_BASE=10.38.229.242:5000/rust:1.85
+        - RUNTIME_BASE=10.38.229.242:5000/debian:bookworm-slim
       tags:
         - ${DRONE_COMMIT_SHA:0:7}
+        - latest
+      cache_from:
+        - 10.38.229.242:5000/task-api:latest
 
   - name: update-infra-repo
     image: registry.local:5000/alpine-git:2.36.3
@@ -61,3 +71,9 @@ volumes:
   - name: dockersock
     host:
       path: /var/run/docker.sock
+  - name: cargo-home
+    host:
+      path: /var/lib/drone-cache/cargo-home
+  - name: task-api-target
+    host:
+      path: /var/lib/drone-cache/task-api-target
