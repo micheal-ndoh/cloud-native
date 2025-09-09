@@ -25,21 +25,21 @@ steps:
     image: registry.local:5000/plugins-docker:20
     privileged: true
     environment:
-      DOCKERD_ARGS: "--insecure-registry registry.local:5000"
+      DOCKERD_ARGS: "--insecure-registry registry.local:5000 --insecure-registry 10.38.229.242:5000"
     settings:
-      repo: registry.local:5000/task-api
-      registry: registry.local:5000
+      repo: 10.38.229.242:5000/task-api
+      registry: 10.38.229.242:5000
       insecure: true
       dockerfile: apps/backend/task-api/Dockerfile
       context: apps/backend/task-api
       build_args:
-        - RUST_BASE=registry.local:5000/rust:1.85
-        - RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
+        - RUST_BASE=10.38.229.242:5000/rust:1.85
+        - RUNTIME_BASE=10.38.229.242:5000/debian:bookworm-slim
       tags:
         - ${DRONE_COMMIT_SHA:0:7}
         - latest
       cache_from:
-        - registry.local:5000/task-api:latest
+        - 10.38.229.242:5000/task-api:latest
 
   - name: update-infra-repo
     image: registry.local:5000/alpine-git:2.36.3
