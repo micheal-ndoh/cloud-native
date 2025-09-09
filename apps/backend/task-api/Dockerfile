@@ -1,10 +1,17 @@
 # Build stage
 ARG RUST_BASE=registry.local:5000/rust:1.85
+ARG RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
 FROM ${RUST_BASE} AS builder
 
 WORKDIR /app
 
+# Cache dependencies layer
 COPY Cargo.toml Cargo.lock ./
+RUN mkdir -p src \
+    && echo "fn main() {}" > src/main.rs \
+    && cargo build --release || true
+
+# Copy full sources and assets
 COPY src ./src
 COPY migrations ./migrations
 COPY static ./static
@@ -17,7 +24,6 @@ RUN cargo build --release
 
 
 # Runtime stage
-ARG RUNTIME_BASE=registry.local:5000/debian:bookworm-slim
 FROM ${RUNTIME_BASE} AS runtime
 
 # Install required libraries
