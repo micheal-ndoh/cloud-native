@@ -86,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Database connection established");
 
     // Run embedded migrations at startup
-    static MIGRATOR: Migrator = Migrator::new(std::path::Path::new("./migrations"));
+    static MIGRATOR: Migrator = sqlx::migrate!();
     info!("Running database migrations");
     MIGRATOR.run(&db).await.map_err(|e| {
         error!("Failed to run migrations: {}", e);
