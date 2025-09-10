@@ -53,11 +53,17 @@ steps:
       - REPO_URL_WITH_AUTH="http://michealndoh:89d192d125811a493ae841b42628e3bc7283af16@gitea.local/michealndoh/Cloud-native-infra.git"
       - git clone "$REPO_URL_WITH_AUTH" infra
       - cd infra
-      - "awk -v tag=\"$IMAGE_TAG\" 'BEGIN{FS=OFS=""} /^[[:space:]]*image:[[:space:]].*task-api:/ { match($0, /^[[:space:]]*/); indent=substr($0, RSTART, RLENGTH); print indent "image: 10.38.229.242:5000/task-api:" tag; next } { print }' apps/backend/task-api-deployment.yaml > /tmp/manifest && mv /tmp/manifest apps/backend/task-api-deployment.yaml"
-      - git status --porcelain | grep . || { echo "No changes to commit"; exit 0; }
-      - git add apps/backend/task-api-deployment.yaml
-      - git commit -m "ci: bump task-api image to ${IMAGE_TAG}"
-      - git push origin HEAD:main
+      - |
+          awk -v tag="$IMAGE_TAG" 'BEGIN{FS=OFS=""} /^[[:space:]]*image:[[:space:]].*task-api:/ { match($0, /^[[:space:]]*/); indent=substr($0, RSTART, RLENGTH); print indent "image: 10.38.229.242:5000/task-api:" tag; next } { print }' apps/backend/task-api-deployment.yaml > /tmp/manifest
+          mv /tmp/manifest apps/backend/task-api-deployment.yaml
+      - |
+          if git status --porcelain | grep .; then
+            git add apps/backend/task-api-deployment.yaml
+            git commit -m "ci: bump task-api image to ${IMAGE_TAG}"
+            git push origin HEAD:main
+          else
+            echo "No changes to commit"
+          fi
     volumes:
       - name: dockersock
         path: /var/run/docker.sock
