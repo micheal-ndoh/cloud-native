@@ -1,0 +1,136 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pod-cleanup
+  namespace: ci
+spec:
+  schedule: "*/10 * * * *"  # Every 10 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: cleanup
+            image: registry.local:5000/alpine-git:2.36.3
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Clean up evicted/failed pods
+              echo "Cleaning up evicted/failed pods..."
+              kubectl get pods -A --field-selector=status.phase=Failed -o name | head -20 | xargs -r kubectl delete --force --grace-period=0 || true
+              
+              # Clean up pods with Evicted status
+              kubectl get pods -A | grep -E "(Evicted|Failed|Error)" | awk '{print $1, $2}' | head -10 | while read ns pod; do
+                kubectl delete pod -n $ns $pod --force --grace-period=0 2>/dev/null || true
+              done
+              
+              # Clean up completed jobs older than 1 hour
+              kubectl get jobs -A --field-selector=status.successful=1 -o jsonpath='{range .items[?(@.status.completionTime)]}{.metadata.namespace} {.metadata.name} {.status.completionTime}{"\n"}{end}' | while read ns job completion_time; do
+                if [ -n "$completion_time" ]; then
+                  completion_epoch=$(date -d "$completion_time" +%s 2>/dev/null || echo "0")
+                  current_epoch=$(date +%s)
+                  age_hours=$(( (current_epoch - completion_epoch) / 3600 ))
+                  if [ $age_hours -gt 1 ]; then
+                    kubectl delete job -n $ns $job --force --grace-period=0 2>/dev/null || true
+                  fi
+                fi
+              done
+              
+              echo "Cleanup completed at $(date)"
+            resources:
+              requests:
+                cpu: "50m"
+                memory: "64Mi"
+              limits:
+                memory: "128Mi"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: image-cleanup
+  namespace: ci
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          hostNetwork: true
+          containers:
+          - name: image-cleanup
+            image: registry.local:5000/alpine-git:2.36.3
+            command:
+            - /bin/sh
+            - -c
+            - |
+              # Clean up unused Docker images on each node
+              echo "Cleaning up unused Docker images..."
+              
+              # Get all nodes
+              kubectl get nodes -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | while read node; do
+                echo "Cleaning images on node: $node"
+                
+                # Create a pod on the specific node to clean images
+                cat <<EOF | kubectl apply -f -
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: image-cleanup-$node-$(date +%s)
+                namespace: ci
+                nodeName: $node
+              spec:
+                restartPolicy: Never
+                containers:
+                - name: cleanup
+                  image: registry.local:5000/alpine-git:2.36.3
+                  command: ["/bin/sh"]
+                  args:
+                  - -c
+                  - |
+                    # Clean up unused images but preserve registry.local:5000 images
+                    echo "Cleaning up unused Docker images (preserving local registry)..."
+                    
+                    # Remove dangling images only (not tagged images)
+                    docker image prune -f || true
+                    
+                    # Clean up build cache
+                    docker builder prune -f || true
+                    
+                    # Clean up unused containers
+                    docker container prune -f || true
+                    
+                    # Clean up unused volumes
+                    docker volume prune -f || true
+                    
+                    # Clean up unused networks
+                    docker network prune -f || true
+                    
+                    echo "Image cleanup completed on $node (local registry preserved)"
+                  securityContext:
+                    privileged: true
+                  volumeMounts:
+                  - name: dockersock
+                    mountPath: /var/run/docker.sock
+                  resources:
+                    requests:
+                      cpu: "50m"
+                      memory: "64Mi"
+                    limits:
+                      memory: "128Mi"
+                volumes:
+                - name: dockersock
+                  hostPath:
+                    path: /var/run/docker.sock
+              EOF
+              done
+              
+              echo "Image cleanup job created for all nodes"
+            resources:
+              requests:
+                cpu: "50m"
+                memory: "64Mi"
+              limits:
+                memory: "128Mi"

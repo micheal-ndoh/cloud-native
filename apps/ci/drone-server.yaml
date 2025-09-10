@@ -14,6 +14,19 @@ stringData:
   DRONE_GITEA_CLIENT_SECRET: "gto_kk2edmg6e2zharziciog6dxli627r4yfllnrdqf3oarhubbkyalq"
   DRONE_RPC_SECRET: "supersecret"
 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drone-data
+  namespace: ci
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,17 +83,17 @@ spec:
           volumeMounts:
             - name: drone-data
               mountPath: /data
+              subPath: drone
           resources:
             requests:
               cpu: "100m"
               memory: "128Mi"
-              ephemeral-storage: "128Mi"
             limits:
               memory: "256Mi"
-              ephemeral-storage: "256Mi"
       volumes:
         - name: drone-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: drone-data
 ---
 apiVersion: v1
 kind: Service

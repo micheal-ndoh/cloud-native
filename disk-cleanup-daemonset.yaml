@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: disk-cleanup
+  namespace: ci
+spec:
+  selector:
+    matchLabels:
+      name: disk-cleanup
+  template:
+    metadata:
+      labels:
+        name: disk-cleanup
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: cleanup
+        image: registry.local:5000/busybox:1.36
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          echo "Starting disk cleanup on $(hostname)..."
+          # Use host tools via chroot (k3s uses containerd)
+          CHROOT="chroot /host"
+          CRICTL="/usr/bin/crictl"
+          CTR="/usr/bin/ctr"
+          JOURNALCTL="/usr/bin/journalctl"
+
+          # Remove Evicted/Completed pods (free logs/directories)
+          kubectl get pods -A --field-selector status.phase==Failed 2>/dev/null | awk 'NR>1 {print $1" "$2}' | while read ns pod; do kubectl -n "$ns" delete pod "$pod" --ignore-not-found=true --grace-period=0 --force || true; done
+          kubectl get pods -A --field-selector status.phase==Succeeded 2>/dev/null | awk 'NR>1 {print $1" "$2}' | while read ns pod; do kubectl -n "$ns" delete pod "$pod" --ignore-not-found=true --grace-period=0 --force || true; done
+
+          # Containerd image/prune via crictl on host
+          if $CHROOT test -x $CRICTL; then
+            echo "Pruning containerd images via crictl..."
+            $CHROOT $CRICTL rmi --prune -a || true
+            $CHROOT $CRICTL image prune || true
+          fi
+
+          # Additional prune via ctr if available
+          if $CHROOT test -x $CTR; then
+            echo "Pruning containerd content via ctr..."
+            $CHROOT $CTR -n k8s.io content ls >/dev/null 2>&1 && $CHROOT $CTR -n k8s.io content rm -f $( $CHROOT $CTR -n k8s.io content ls -q 2>/dev/null ) 2>/dev/null || true
+            $CHROOT $CTR -n k8s.io images prune || true
+          fi
+
+          # Vacuum journal logs on host (keep last 2 days)
+          if $CHROOT test -x $JOURNALCTL; then
+            echo "Vacuuming systemd journals..."
+            $CHROOT $JOURNALCTL --vacuum-time=2d || true
+          fi
+
+          # Remove orphaned containerd snapshots (best-effort)
+          rm -rf /host/var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content/tmp/* 2>/dev/null || true
+
+          # Show disk usage after cleanup
+          df -h /host/var/lib/rancher/k3s || true
+          df -h /host/var/lib || true
+
+          echo "Disk cleanup completed on $(hostname)"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: host-root
+          mountPath: /host
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "64Mi"
+          limits:
+            memory: "128Mi"
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /
+      tolerations:
+      - key: node.kubernetes.io/disk-pressure
+        operator: Exists
+        effect: NoSchedule

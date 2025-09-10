@@ -1,0 +1,250 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  annotations:
+    cnpg.io/nodeSerial: '1'
+    cnpg.io/operatorVersion: 1.27.0
+    cnpg.io/podEnvHash: 798b658db5
+    cnpg.io/podSpec: >-
+      {"volumes":[{"name":"pgdata","persistentVolumeClaim":{"claimName":"cluster-app-1"}},{"name":"scratch-data","emptyDir":{}},{"name":"shm","emptyDir":{"medium":"Memory"}}],"initContainers":[{"name":"bootstrap-controller","image":"registry.local:5000/cloudnative-pg:latest","command":["/manager","bootstrap","/controller/manager","--log-level=info"],"resources":{},"volumeMounts":[{"name":"pgdata","mountPath":"/var/lib/postgresql/data"},{"name":"scratch-data","mountPath":"/run"},{"name":"scratch-data","mountPath":"/controller"},{"name":"shm","mountPath":"/dev/shm"}],"securityContext":{"capabilities":{"drop":["ALL"]},"privileged":false,"runAsNonRoot":true,"readOnlyRootFilesystem":true,"allowPrivilegeEscalation":false,"seccompProfile":{"type":"RuntimeDefault"}}}],"containers":[{"name":"postgres","image":"registry.local:5000/postgresql:16.4","command":["/controller/manager","instance","run","--status-port-tls","--log-level=info"],"ports":[{"name":"postgresql","containerPort":5432,"protocol":"TCP"},{"name":"metrics","containerPort":9187,"protocol":"TCP"},{"name":"status","containerPort":8000,"protocol":"TCP"}],"env":[{"name":"PGDATA","value":"/var/lib/postgresql/data/pgdata"},{"name":"POD_NAME","value":"cluster-app-1"},{"name":"NAMESPACE","value":"database"},{"name":"CLUSTER_NAME","value":"cluster-app"},{"name":"PSQL_HISTORY","value":"/controller/tmp/.psql_history"},{"name":"PGPORT","value":"5432"},{"name":"PGHOST","value":"/controller/run"},{"name":"TMPDIR","value":"/controller/tmp"}],"resources":{},"volumeMounts":[{"name":"pgdata","mountPath":"/var/lib/postgresql/data"},{"name":"scratch-data","mountPath":"/run"},{"name":"scratch-data","mountPath":"/controller"},{"name":"shm","mountPath":"/dev/shm"}],"livenessProbe":{"httpGet":{"path":"/healthz","port":8000,"scheme":"HTTPS"},"timeoutSeconds":5,"periodSeconds":10},"readinessProbe":{"httpGet":{"path":"/readyz","port":8000,"scheme":"HTTPS"},"timeoutSeconds":5,"periodSeconds":10},"startupProbe":{"httpGet":{"path":"/startupz","port":8000,"scheme":"HTTPS"},"timeoutSeconds":5,"periodSeconds":10,"failureThreshold":360},"securityContext":{"capabilities":{"drop":["ALL"]},"privileged":false,"runAsNonRoot":true,"readOnlyRootFilesystem":true,"allowPrivilegeEscalation":false,"seccompProfile":{"type":"RuntimeDefault"}}}],"terminationGracePeriodSeconds":1800,"serviceAccountName":"cluster-app","securityContext":{"runAsUser":26,"runAsGroup":26,"runAsNonRoot":true,"fsGroup":26,"seccompProfile":{"type":"RuntimeDefault"}},"hostname":"cluster-app-1","affinity":{"podAntiAffinity":{"preferredDuringSchedulingIgnoredDuringExecution":[{"weight":100,"podAffinityTerm":{"labelSelector":{"matchExpressions":[{"key":"cnpg.io/cluster","operator":"In","values":["cluster-app"]},{"key":"cnpg.io/podRole","operator":"In","values":["instance"]}]},"topologyKey":"kubernetes.io/hostname"}}]}}}
+    config.linkerd.io/opaque-ports: '5432'
+    kubernetes.io/limit-ranger: >-
+      LimitRanger plugin set: ephemeral-storage request for container postgres;
+      ephemeral-storage limit for container postgres; ephemeral-storage request
+      for init container bootstrap-controller; ephemeral-storage limit for init
+      container bootstrap-controller
+  creationTimestamp: '2025-09-09T15:58:23Z'
+  labels:
+    cnpg.io/cluster: cluster-app
+    cnpg.io/instanceName: cluster-app-1
+    cnpg.io/podRole: instance
+  name: cluster-app-1
+  namespace: database
+  ownerReferences:
+    - apiVersion: postgresql.cnpg.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Cluster
+      name: cluster-app
+      uid: a8519187-cddd-4861-b1a9-9f2e529c03e5
+  resourceVersion: '374836'
+  uid: 3fd0a78b-f895-46a2-8846-d0bf0df267a2
+spec:
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: cnpg.io/cluster
+                  operator: In
+                  values:
+                    - cluster-app
+                - key: cnpg.io/podRole
+                  operator: In
+                  values:
+                    - instance
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+  containers:
+    - command:
+        - /controller/manager
+        - instance
+        - run
+        - '--status-port-tls'
+        - '--log-level=info'
+      env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POD_NAME
+          value: cluster-app-1
+        - name: NAMESPACE
+          value: database
+        - name: CLUSTER_NAME
+          value: cluster-app
+        - name: PSQL_HISTORY
+          value: /controller/tmp/.psql_history
+        - name: PGPORT
+          value: '5432'
+        - name: PGHOST
+          value: /controller/run
+        - name: TMPDIR
+          value: /controller/tmp
+      image: registry.local:5000/postgresql:16.4
+      imagePullPolicy: IfNotPresent
+      livenessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /healthz
+          port: 8000
+          scheme: HTTPS
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      name: postgres
+      ports:
+        - containerPort: 5432
+          name: postgresql
+          protocol: TCP
+        - containerPort: 9187
+          name: metrics
+          protocol: TCP
+        - containerPort: 8000
+          name: status
+          protocol: TCP
+      readinessProbe:
+        failureThreshold: 3
+        httpGet:
+          path: /readyz
+          port: 8000
+          scheme: HTTPS
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      resources:
+        limits:
+          ephemeral-storage: 2Gi
+          memory: 1Gi
+          cpu: 500m
+        requests:
+          ephemeral-storage: 1Gi
+          memory: 512Mi
+          cpu: 250m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      startupProbe:
+        failureThreshold: 360
+        httpGet:
+          path: /startupz
+          port: 8000
+          scheme: HTTPS
+        periodSeconds: 10
+        successThreshold: 1
+        timeoutSeconds: 5
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: pgdata
+        - mountPath: /run
+          name: scratch-data
+        - mountPath: /controller
+          name: scratch-data
+        - mountPath: /dev/shm
+          name: shm
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access-g6fpc
+          readOnly: true
+  dnsPolicy: ClusterFirst
+  enableServiceLinks: true
+  hostname: cluster-app-1
+  initContainers:
+    - command:
+        - /manager
+        - bootstrap
+        - /controller/manager
+        - '--log-level=info'
+      image: registry.local:5000/cloudnative-pg:latest
+      imagePullPolicy: Always
+      name: bootstrap-controller
+      resources:
+        limits:
+          ephemeral-storage: 2Gi
+          memory: 256Mi
+          cpu: 100m
+        requests:
+          ephemeral-storage: 1Gi
+          memory: 128Mi
+          cpu: 50m
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+        privileged: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      terminationMessagePath: /dev/termination-log
+      terminationMessagePolicy: File
+      volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: pgdata
+        - mountPath: /run
+          name: scratch-data
+        - mountPath: /controller
+          name: scratch-data
+        - mountPath: /dev/shm
+          name: shm
+        - mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          name: kube-api-access-g6fpc
+          readOnly: true
+  preemptionPolicy: PreemptLowerPriority
+  priority: 0
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  securityContext:
+    fsGroup: 26
+    runAsGroup: 26
+    runAsNonRoot: true
+    runAsUser: 26
+    seccompProfile:
+      type: RuntimeDefault
+  serviceAccount: cluster-app
+  serviceAccountName: cluster-app
+  terminationGracePeriodSeconds: 1800
+  tolerations:
+    - effect: NoExecute
+      key: node.kubernetes.io/not-ready
+      operator: Exists
+      tolerationSeconds: 300
+    - effect: NoExecute
+      key: node.kubernetes.io/unreachable
+      operator: Exists
+      tolerationSeconds: 300
+    # Add toleration for disk pressure
+    - effect: NoSchedule
+      key: node.kubernetes.io/disk-pressure
+      operator: Exists
+      tolerationSeconds: 300
+    # Add toleration for memory pressure
+    - effect: NoSchedule
+      key: node.kubernetes.io/memory-pressure
+      operator: Exists
+      tolerationSeconds: 300
+  volumes:
+    - name: pgdata
+      persistentVolumeClaim:
+        claimName: cluster-app-1
+    - emptyDir: {}
+      name: scratch-data
+    - emptyDir:
+        medium: Memory
+      name: shm
+    - name: kube-api-access-g6fpc
+      projected:
+        defaultMode: 420
+        sources:
+          - serviceAccountToken:
+              expirationSeconds: 3607
+              path: token
+          - configMap:
+              items:
+                - key: ca.crt
+                  path: ca.crt
+              name: kube-root-ca.crt
+          - downwardAPI:
+              items:
+                - fieldRef:
+                    apiVersion: v1
+                    fieldPath: metadata.namespace
+                  path: namespace

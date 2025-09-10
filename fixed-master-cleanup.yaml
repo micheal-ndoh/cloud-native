@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emergency-cleanup-master
+  namespace: ci
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-master
+  restartPolicy: Never
+  hostPID: true
+  tolerations:
+  - key: node.kubernetes.io/disk-pressure
+    operator: Exists
+    effect: NoSchedule
+  - key: node.kubernetes.io/disk-pressure
+    operator: Exists
+    effect: NoExecute
+  containers:
+  - name: cleanup
+    image: registry.local:5000/busybox:1.36
+    command: ["/bin/sh"]
+    args:
+    - -c
+    - |
+      echo "Starting emergency disk cleanup on master node..."
+      CHROOT="chroot /host"
+      CRICTL="/usr/bin/crictl"
+      CTR="/usr/bin/ctr"
+      JOURNALCTL="/usr/bin/journalctl"
+
+      if $CHROOT test -x $CRICTL; then
+        echo "Pruning containerd images via crictl..."
+        $CHROOT $CRICTL rmi --prune -a || true
+        $CHROOT $CRICTL image prune || true
+      fi
+      if $CHROOT test -x $CTR; then
+        echo "Pruning containerd content via ctr..."
+        $CHROOT $CTR -n k8s.io images prune || true
+      fi
+      if $CHROOT test -x $JOURNALCTL; then
+        echo "Vacuuming journals..."
+        $CHROOT $JOURNALCTL --vacuum-time=2d || true
+      fi
+      rm -rf /host/var/lib/rancher/k3s/agent/containerd/io.containerd.content.v1.content/tmp/* 2>/dev/null || true
+      echo "Disk usage:"
+      df -h /host/var/lib/rancher/k3s || true
+      df -h /host/var/lib || true
+      echo "Emergency cleanup on master completed"
+    securityContext:
+      privileged: true
+    volumeMounts:
+    - name: host-root
+      mountPath: /host
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        memory: "128Mi"
+  volumes:
+  - name: host-root
+    hostPath:
+      path: /

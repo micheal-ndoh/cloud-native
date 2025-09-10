@@ -4,7 +4,7 @@ use axum::{
     routing::get_service,
 };
 use reqwest::Url;
-use sqlx::PgPool;
+use sqlx::{PgPool, migrate::Migrator};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use utoipa::OpenApi;
@@ -84,6 +84,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         e
     })?;
     info!("Database connection established");
+
+    // Run embedded migrations at startup
+    static MIGRATOR: Migrator = Migrator::new(std::path::Path::new("./migrations"));
+    info!("Running database migrations");
+    MIGRATOR.run(&db).await.map_err(|e| {
+        error!("Failed to run migrations: {}", e);
+        e
+    })?;
+    info!("Database migrations applied");
     
     let state = Arc::new(AppState {
         db,

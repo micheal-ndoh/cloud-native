@@ -4,7 +4,7 @@ name: backend-ci
 
 steps:
   - name: rust-checks
-    image: registry.local:5000/rust:1.85
+    image: 10.38.229.242:5000/rust:1.85
     environment:
       CARGO_TERM_COLOR: always
       CARGO_HOME: /cargo-home
@@ -12,9 +12,8 @@ steps:
     commands:
       - cd apps/backend/task-api
       - rustc --version; cargo --version
-      - cargo fetch
-      - cargo build --locked
-      - cargo test --locked
+      - cargo build --locked --offline
+      - cargo test --locked --offline
     volumes:
       - name: cargo-home
         path: /cargo-home
@@ -22,7 +21,7 @@ steps:
         path: /drone/src/apps/backend/task-api/target
 
   - name: docker-build-push
-    image: registry.local:5000/plugins-docker:20
+    image: 10.38.229.242:5000/plugins-docker:20
     privileged: true
     environment:
       DOCKERD_ARGS: "--insecure-registry registry.local:5000 --insecure-registry 10.38.229.242:5000"
@@ -42,7 +41,7 @@ steps:
         - 10.38.229.242:5000/task-api:latest
 
   - name: update-infra-repo
-    image: registry.local:5000/alpine-git:2.36.3
+    image: 10.38.229.242:5000/alpine-git:2.36.3
     environment:
       GIT_AUTHOR_NAME: drone-bot
       GIT_AUTHOR_EMAIL: drone-bot@gitea.local
@@ -54,7 +53,7 @@ steps:
       - 'REPO_URL_WITH_AUTH="http://michealndoh:89d192d125811a493ae841b42628e3bc7283af16@gitea.local/michealndoh/Cloud-native-infra.git"'
       - 'git clone $REPO_URL_WITH_AUTH infra'
       - 'cd infra'
-      - 'sed -i "s|[a-zA-Z0-9\.:-]*/task-api:.*|registry.local:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
+      - 'sed -i "s|[a-zA-Z0-9\.:-]*/task-api:.*|10.38.229.242:5000/task-api:${IMAGE_TAG}|" apps/backend/task-api-deployment.yaml'
       - 'git status --porcelain | grep . || { echo "No changes to commit"; exit 0; }'
       - 'git add apps/backend/task-api-deployment.yaml'
       - 'git commit -m "ci: bump task-api image to ${IMAGE_TAG}"'
