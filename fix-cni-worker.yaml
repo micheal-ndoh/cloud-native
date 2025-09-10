@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fix-cni-worker
+  namespace: ci
+spec:
+  nodeSelector:
+    kubernetes.io/hostname: k3s-worker
+  restartPolicy: Never
+  hostPID: true
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  containers:
+  - name: fixer
+    image: registry.local:5000/alpine-git:2.36.3
+    securityContext:
+      privileged: true
+    command: ["/bin/sh"]
+    args:
+    - -c
+    - |
+      set -x
+      CHROOT="chroot /host"
+      # Ensure CNI dir exists and points to current k3s bin
+      $CHROOT mkdir -p /var/lib/rancher/k3s/data/cni || true
+      CUR=$($CHROOT readlink -f /var/lib/rancher/k3s/data/current 2>/dev/null || true)
+      if [ -n "$CUR" ] && [ -d "$CUR/bin" ]; then
+        # link CNI plugins into expected path
+        for f in $CUR/bin/*; do
+          base=$(basename "$f")
+          case "$base" in
+            flannel|loopback|bridge|host-local|portmap|bandwidth|firewall|static|tuning)
+              $CHROOT ln -sf "$f" "/var/lib/rancher/k3s/data/cni/$base" || true;;
+          esac
+        done
+        $CHROOT ls -l /var/lib/rancher/k3s/data/cni || true
+      else
+        echo "Could not determine k3s current bin path" >&2
+      fi
+      echo "done"
+    volumeMounts:
+    - name: host
+      mountPath: /host
+    resources:
+      requests:
+        cpu: "10m"
+        memory: "32Mi"
+        ephemeral-storage: "16Mi"
+      limits:
+        cpu: "10m"
+        memory: "32Mi"
+        ephemeral-storage: "16Mi"
+  volumes:
+  - name: host
+    hostPath:
+      path: /

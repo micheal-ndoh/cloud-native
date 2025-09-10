@@ -10,7 +10,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: cleanup
-    image: registry.local:5000/busybox:1.36
+    image: registry.local:5000/alpine-git:2.36.3
     command: ["/bin/sh"]
     args:
     - -c
@@ -25,9 +25,9 @@ spec:
       kubectl get pods -A --field-selector status.phase==Succeeded 2>/dev/null | awk 'NR>1 {print $1" "$2}' | while read ns pod; do kubectl -n "$ns" delete pod "$pod" --ignore-not-found=true --grace-period=0 --force || true; done
       kubectl get pods -A | grep -i Evicted | awk '{print $1" "$2}' | while read ns pod; do kubectl -n "$ns" delete pod "$pod" --ignore-not-found=true --grace-period=0 --force || true; done
 
-      # Containerd prune via crictl/ctr
+      # Containerd prune via crictl/ctr, remove non-local images first
       if $CHROOT test -x $CRICTL; then
-        $CHROOT $CRICTL rmi --prune -a || true
+        $CHROOT $CRICTL images -o table | awk 'NR>1 {print $1":"$2}' | grep -v "registry.local" | while read img; do $CHROOT $CRICTL rmi -f "$img" || true; done
         $CHROOT $CRICTL image prune || true
       fi
       if $CHROOT test -x $CTR; then
@@ -54,7 +54,8 @@ spec:
         cpu: "100m"
         memory: "128Mi"
       limits:
-        memory: "256Mi"
+        cpu: "100m"
+        memory: "128Mi"
   volumes:
   - name: host-root
     hostPath:

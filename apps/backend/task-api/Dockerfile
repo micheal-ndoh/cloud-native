@@ -19,14 +19,16 @@ COPY migrations ./migrations
 COPY static ./static
 
 # Build the application
-RUN cargo build --release --offline
+RUN cargo build --release --offline \
+    && strip target/release/task-api || true
 
 
 # Runtime stage
 FROM ${RUNTIME_BASE} AS runtime
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user

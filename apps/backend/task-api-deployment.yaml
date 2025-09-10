@@ -4,7 +4,7 @@ metadata:
   name: task-api
   namespace: backend
   annotations:
-    linkerd.io/inject: enabled
+    linkerd.io/inject: disabled
 spec:
   replicas: 1
   selector:
@@ -15,13 +15,24 @@ spec:
       labels:
         app: task-api
       annotations:
-        linkerd.io/inject: enabled
+        linkerd.io/inject: disabled
     spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker
       containers:
         - name: task-api
           image: 10.38.229.242:5000/task-api:a21175b
           ports:
             - containerPort: 3000
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+              ephemeral-storage: "1Gi"
           envFrom:
             - configMapRef:
                 name: task-api-config
