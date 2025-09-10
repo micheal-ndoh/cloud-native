@@ -70,38 +70,51 @@ impl utoipa::Modify for SecurityAddon {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize logging first, before any other operations
+    println!("DEBUG: Starting application initialization...");
     let logging_config = LoggingConfig::from_env();
+    println!("DEBUG: Logging config created");
     let _guard = logging_config.init();
+    println!("DEBUG: Logging initialized");
     
     info!("Starting Task API server");
+    println!("DEBUG: About to load configuration...");
     
     let config = Config::init();
     info!("Configuration loaded successfully");
+    println!("DEBUG: Configuration loaded successfully");
 
     info!("Connecting to database");
+    println!("DEBUG: About to connect to database: {}", config.database_url);
     let db = PgPool::connect(&config.database_url).await.map_err(|e| {
         error!("Failed to connect to database: {}", e);
+        println!("DEBUG: Database connection failed: {}", e);
         e
     })?;
     info!("Database connection established");
+    println!("DEBUG: Database connection established");
 
     // Run embedded migrations at startup
     static MIGRATOR: Migrator = sqlx::migrate!();
     info!("Running database migrations");
+    println!("DEBUG: About to run migrations...");
     MIGRATOR.run(&db).await.map_err(|e| {
         error!("Failed to run migrations: {}", e);
+        println!("DEBUG: Migration failed: {}", e);
         e
     })?;
     info!("Database migrations applied");
+    println!("DEBUG: Database migrations applied");
     
     let state = Arc::new(AppState {
         db,
         config: config.clone(),
     });
     info!("Application state initialized");
+    println!("DEBUG: Application state initialized");
 
     // Initialize Keycloak instance for auth
     info!("Initializing Keycloak authentication");
+    println!("DEBUG: About to initialize Keycloak...");
     let keycloak_config = KeycloakConfig::builder()
         .server(Url::parse(config.keycloak_url.as_str()).unwrap())
         .realm(config.realm.clone())
@@ -109,24 +122,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let keycloak_instance = Arc::new(KeycloakAuthInstance::new(keycloak_config));
     info!("Keycloak authentication initialized");
+    println!("DEBUG: Keycloak authentication initialized");
 
+    println!("DEBUG: About to create static service...");
     let static_service = get_service(
         ServeDir::new("static").append_index_html_on_directories(true),
     )
     .handle_error(|err| async move {
         (axum::http::StatusCode::INTERNAL_SERVER_ERROR, format!("static file error: {}", err))
     });
+    println!("DEBUG: Static service created");
 
+    println!("DEBUG: About to create routes...");
     let app = routes::create_routes(state.clone(), keycloak_instance)
         .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .route("/docs", axum::routing::get(|| async { Redirect::temporary("/swagger-ui") }))
-        .nest_service("/", static_service);
+        .fallback_service(static_service);
+    println!("DEBUG: Routes created");
 
     let addr = format!("{}:{}", state.config.host, state.config.port);
+    println!("DEBUG: About to bind to address: {}", addr);
     let listener = TcpListener::bind(&addr).await.map_err(|e| {
         error!("Failed to bind to address {}: {}", addr, e);
+        println!("DEBUG: Failed to bind to address {}: {}", addr, e);
         e
     })?;
+    println!("DEBUG: Successfully bound to address: {}", addr);
     
     info!(
         address = %addr,
@@ -138,11 +159,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     info!("Starting HTTP server");
+    println!("DEBUG: About to start HTTP server...");
     serve(listener, app).await.map_err(|e| {
         error!("Server error: {}", e);
+        println!("DEBUG: Server error: {}", e);
         e
     })?;
 
     info!("Server shutdown");
+    println!("DEBUG: Server shutdown");
     Ok(())
 }

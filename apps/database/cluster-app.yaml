@@ -5,7 +5,7 @@ metadata:
   namespace: database
 spec:
   instances: 1
-  imageName: registry.local:5000/postgresql:16.4
+  imageName: 10.38.229.242:5000/postgresql:16.4
   affinity:
     nodeAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:
@@ -17,6 +17,7 @@ spec:
             - k3s-worker
   storage:
     size: 5Gi
+    storageClass: local-path
   resources:
     requests:
       cpu: "100m"
