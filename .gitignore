@@ -2,6 +2,7 @@
 target/
 **/*.rs.bk
 Cargo.lock
+!apps/backend/task-api/vendor/**/Cargo.lock
 *.pdb
 docs/PROJECT_STATUS.md
 ASSIGNMENT_ANALYSIS.md
