@@ -21,7 +21,7 @@ spec:
         kubernetes.io/hostname: k3s-worker
       containers:
         - name: task-api
-          image: 10.38.229.242:5000/task-api:a21175b
+          image: registry.local:5000/task-api@sha256:edc3578d7621b74e1ad124200c34181c23dbdee570430ac25352e894bda2d66d
           ports:
             - containerPort: 3000
           resources:
@@ -33,6 +33,11 @@ spec:
               cpu: "200m"
               memory: "256Mi"
               ephemeral-storage: "1Gi"
+          env:
+            - name: RUST_LOG
+              value: info
+            - name: LOG_OUTPUT
+              value: stdout
           envFrom:
             - configMapRef:
                 name: task-api-config
