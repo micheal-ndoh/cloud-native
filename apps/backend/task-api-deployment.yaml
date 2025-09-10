@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: task-api
-          image: registry.local:5000/task-api:
+          image: 10.38.229.242:5000/task-api:
           ports:
             - containerPort: 3000
           envFrom:
