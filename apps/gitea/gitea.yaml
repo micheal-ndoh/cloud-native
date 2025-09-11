@@ -20,7 +20,7 @@ spec:
             - "drone.local"
       containers:
         - name: gitea
-          image: registry.local:5000/gitea:latest
+          image: 10.38.229.242:5000/gitea:latest
           ports:
             - containerPort: 3000
             - containerPort: 22

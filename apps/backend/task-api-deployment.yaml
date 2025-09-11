@@ -21,7 +21,7 @@ spec:
         kubernetes.io/hostname: k3s-worker
       containers:
         - name: task-api
-          image: 10.38.229.242:5000/task-api:debug
+          image: 10.38.229.242:5000/task-api:swagger-fix
           ports:
             - containerPort: 3000
           resources:

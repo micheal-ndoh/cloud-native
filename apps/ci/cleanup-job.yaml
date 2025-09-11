@@ -12,7 +12,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: cleanup
-            image: registry.local:5000/alpine-git:2.36.3
+            image: 10.38.229.242:5000/alpine-git:2.36.3
             command:
             - /bin/sh
             - -c
@@ -61,7 +61,7 @@ spec:
           hostNetwork: true
           containers:
           - name: image-cleanup
-            image: registry.local:5000/alpine-git:2.36.3
+            image: 10.38.229.242:5000/alpine-git:2.36.3
             command:
             - /bin/sh
             - -c
@@ -85,7 +85,7 @@ spec:
                 restartPolicy: Never
                 containers:
                 - name: cleanup
-                  image: registry.local:5000/alpine-git:2.36.3
+                  image: 10.38.229.242:5000/alpine-git:2.36.3
                   command: ["/bin/sh"]
                   args:
                   - -c
