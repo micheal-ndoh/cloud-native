@@ -25,6 +25,14 @@ print_error() {
 check_prerequisites() {
     print_status "Checking prerequisites..."
     
+    # Ensure CLIs (linkerd, argocd, drone) are available (best-effort)
+    if [[ $EUID -ne 0 ]]; then
+        print_status "Attempting to install CLIs (requires sudo)"
+        sudo bash -lc "$(printf '%q' "$PWD")/scripts/install-clis.sh" || true
+    else
+        bash "$(printf '%q' "$PWD")/scripts/install-clis.sh" || true
+    fi
+    
     # Check Terraform
     if ! command -v terraform >/dev/null 2>&1; then
         print_error "Terraform is required but not installed."
