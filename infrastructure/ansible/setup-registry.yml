@@ -141,3 +141,16 @@
         - ghcr.io/micheal-ndoh/task-api:latest
         - ghcr.io/cloudnative-pg/postgresql:16.4
       when: "'registry' in group_names"
+
+    # -------------------- Mirror Drone images with specific tags --------------------
+    - name: Mirror Drone images to local registry (tagged)
+      docker_image:
+        name: "{{ item.src }}"
+        tag: "{{ item.tag }}"
+        source: pull
+        repository: "{{ registry_host }}:{{ registry_port }}/{{ item.repo }}"
+        push: yes
+      loop:
+        - { src: "drone/drone", tag: "2", repo: "drone" }
+        - { src: "drone/drone-runner-docker", tag: "1", repo: "drone-runner-docker" }
+      when: "'registry' in group_names"
