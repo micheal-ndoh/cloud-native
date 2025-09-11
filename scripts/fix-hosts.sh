@@ -33,7 +33,7 @@ TMP=$(mktemp)
 cp /etc/hosts "$TMP"
 
 # Remove existing conflicting lines for our hostnames
-sed -i "/\\b\(gitea\.local\|drone\.local\|task-api\.local\|keycloak\.local\|registry\.local\)\\b/d" "$TMP"
+sed -i "/\\b\(gitea\.local\|drone\.local\|task-api\.local\|keycloak\.local\|registry\.local\|linkerd\.local\|grafana\.local\|prom\.local\|argocd\.local\)\\b/d" "$TMP"
 
 cat >> "$TMP" <<EOF
 ${INGRESS_IP} gitea.local
@@ -41,6 +41,10 @@ ${INGRESS_IP} drone.local
 ${INGRESS_IP} task-api.local
 ${INGRESS_IP} keycloak.local
 ${REGISTRY_IP} registry.local
+${INGRESS_IP} linkerd.local
+${INGRESS_IP} grafana.local
+${INGRESS_IP} prom.local
+${INGRESS_IP} argocd.local
 EOF
 
 echo "Preview of changes:" && tail -n 10 "$TMP"

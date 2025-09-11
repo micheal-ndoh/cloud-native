@@ -223,10 +223,14 @@ terraform destroy -auto-approve
 
 ## Access Endpoints
 
-- API: `http://task-api.local/api` (health: `/api/health`)
-- Keycloak: `http://keycloak.local/`
-- Gitea: `http://gitea.local/`
-- Linkerd Viz: `http://localhost:8084` (after port-forward)
+- API: `http://task-api.local/` (health: `http://task-api.local/api/health`, Swagger: `http://task-api.local/swagger-ui/`)
+- Keycloak: `http://keycloak.local/admin/master/console/` (admin/admin)
+- Gitea: `http://gitea.local/michealndoh` (first admin auto-created per deploy; see `apps/ci/drone-server.yaml` for DRONE_USER_CREATE)
+- Drone CI: `http://drone.local/`
+- Linkerd Viz: `http://linkerd.local/`
+- Grafana: `http://grafana.local/` (admin/admin)
+- Prometheus: `http://prom.local/`
+- Argo CD: `http://argocd.local/` (set admin password via ArgoCD install or secret)
 
 ## Contributing
 
