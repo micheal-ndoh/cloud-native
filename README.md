@@ -235,3 +235,44 @@ terraform destroy -auto-approve
 3. Make your changes
 4. Test thoroughly
 5. Submit a pull request# cloud-native
+
+## Local hosts setup
+
+Use the idempotent script to configure UI hostnames:
+
+```bash
+./scripts/fix-hosts.sh <INGRESS_IP> 10.38.229.242
+```
+
+## JWT quick test
+
+Obtain a token from Keycloak and call the protected endpoint:
+
+```bash
+KC_URL=http://keycloak.local
+REALM=task-api-realm
+CLIENT=app-client
+USER=testuser PASS=testpass
+
+TOKEN=$(curl -s -X POST "$KC_URL/realms/$REALM/protocol/openid-connect/token" \
+  -d grant_type=password -d client_id=$CLIENT -d username=$USER -d password=$PASS \
+  | jq -r .access_token)
+
+curl -s -H "Authorization: Bearer $TOKEN" http://task-api.local/api/tasks | jq .
+```
+
+## Linkerd viz verification
+
+If Linkerd CLI is available:
+
+```bash
+linkerd viz stat deploy -n backend --time-window 30s
+linkerd viz edges deploy -n backend
+```
+
+Otherwise, verify sidecar and metrics via kubectl:
+
+```bash
+kubectl -n backend get pods -l app=task-api -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{","}{end}{"\n"}{end}'
+kubectl -n linkerd-viz port-forward svc/web 8084:8084 # open http://localhost:8084
+```

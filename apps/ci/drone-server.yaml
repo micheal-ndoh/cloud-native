@@ -34,7 +34,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: server
-          image: drone/drone:2
+          image: 10.38.229.242:5000/drone:2
           env:
             - name: DRONE_GITEA_SERVER
               value: "http://gitea.gitea.svc.cluster.local:3000"

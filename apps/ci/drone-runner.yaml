@@ -18,7 +18,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: runner
-          image: drone/drone-runner-docker:1
+          image: 10.38.229.242:5000/drone-runner-docker:1
           env:
             - name: DRONE_RPC_HOST
               value: drone-server.ci.svc.cluster.local
