@@ -1,20 +1,21 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: argocd
-  namespace: argocd
+  name: linkerd-viz-web
+  namespace: linkerd-viz
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
     traefik.ingress.kubernetes.io/router.tls: "false"
+    traefik.ingress.kubernetes.io/router.middlewares: linkerd-viz-linkerd-host-localhost@kubernetescrd
 spec:
   rules:
-    - host: argocd.local
+    - host: linkerd.local
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: argocd-server
+                name: web
                 port:
-                  number: 80
+                  number: 8084
