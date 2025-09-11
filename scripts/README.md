@@ -32,6 +32,6 @@ Starts common port-forwards locally:
 ```bash
 ./port-forward-all.sh
 kubectl -n argocd port-forward svc/argocd-server 8080:443 &
-echo "Open https://localhost:8080 (user: admin)"
+echo "Open http://argocd.local (user: admin)"
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo
 ```

@@ -60,8 +60,8 @@ kubectl get pods -A
 - **Gitea**: http://gitea.local (admin/admin123)
 - **Drone CI**: http://drone.local
 - **Grafana**: http://grafana.local (admin/admin123)
-- **Prometheus**: http://prometheus.local
-- **Linkerd Viz**: http://localhost:8084 (port-forward)
+- **Prometheus**: http://prom.local
+- **Linkerd Viz**: http://linkerd.local
 
 ## 📊 Monitoring & Observability
 
@@ -214,10 +214,10 @@ kubectl exec -it -n database <postgres-pod> -- psql -U postgres -d tasks
 #### 6. Monitoring Issues
 ```bash
 # Check Prometheus targets
-curl http://localhost:9090/api/v1/targets
+curl http://prom.local/api/v1/targets
 
 # Check Grafana health
-curl http://localhost:3000/api/health
+curl http://grafana.local/api/health
 
 # Check Linkerd Viz
 kubectl get pods -n linkerd-viz
@@ -241,7 +241,7 @@ kubectl describe pod -n <namespace> <pod-name> | grep -A 5 "Limits:"
 linkerd viz stat -n <namespace> deploy/<deployment>
 
 # Check Prometheus metrics
-curl "http://localhost:9090/api/v1/query?query=histogram_quantile(0.95,rate(http_request_duration_seconds_bucket[5m]))"
+curl "http://prom.local/api/v1/query?query=histogram_quantile(0.95,rate(http_request_duration_seconds_bucket[5m]))"
 ```
 
 ### Network Issues

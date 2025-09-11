@@ -153,7 +153,7 @@ kubectl exec -it -n database <postgres-pod> -- psql -U postgres -d tasks
 #### Database Performance Issues
 ```bash
 # Check database metrics
-curl "http://localhost:9090/api/v1/query?query=pg_stat_database_numbackends"
+curl "http://prom.local/api/v1/query?query=pg_stat_database_numbackends"
 
 # Check connection pool
 kubectl exec -it -n database <postgres-pod> -- psql -U postgres -c "SELECT * FROM pg_stat_activity;"
@@ -205,7 +205,7 @@ curl -H "Authorization: Bearer <token>" http://task-api.local/tasks
 #### Prometheus Not Scraping Metrics
 ```bash
 # Check Prometheus targets
-curl http://localhost:9090/api/v1/targets
+curl http://prom.local/api/v1/targets
 
 # Check Prometheus configuration
 kubectl get configmap -n monitoring prometheus-config -o yaml
@@ -223,7 +223,7 @@ kubectl logs -n monitoring <prometheus-pod>
 #### Grafana Dashboard Issues
 ```bash
 # Check Grafana health
-curl http://localhost:3000/api/health
+curl http://grafana.local/api/health
 
 # Check Grafana logs
 kubectl logs -n monitoring <grafana-pod>
@@ -397,10 +397,10 @@ kubectl api-resources
 - **Service Mesh Logs**: `linkerd logs -n <namespace> <pod-name>`
 
 ### Monitoring URLs
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/admin123)
-- **Linkerd Viz**: http://localhost:8084
-- **ArgoCD**: http://localhost:8080 (admin/password)
+- **Prometheus**: http://prom.local
+- **Grafana**: http://grafana.local (admin/admin123)
+- **Linkerd Viz**: http://linkerd.local
+- **ArgoCD**: http://argocd.local (admin/password)
 
 ---
 

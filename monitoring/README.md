@@ -6,9 +6,9 @@ Prometheus, Grafana, and Linkerd viz access tips.
 ```bash
 # Start forwards for common tools
 ../../scripts/port-forward-all.sh
-# Prometheus: http://localhost:9090
-# Grafana:    http://localhost:3000
-# Linkerd:    http://localhost:8084
+# Prometheus: http://prom.local
+# Grafana:    http://grafana.local
+# Linkerd:    http://linkerd.local
 ```
 
 ## Dashboards

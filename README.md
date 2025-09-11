@@ -91,7 +91,7 @@ This project sets up a complete cloud-native environment with:
    - Or port-forward the web UI:
      ```bash
      ./scripts/observability.sh linkerd-viz port-forward
-     # then open http://localhost:8084
+     # then open http://linkerd.local
      ```
    - Useful checks:
      ```bash
@@ -278,5 +278,5 @@ Otherwise, verify sidecar and metrics via kubectl:
 
 ```bash
 kubectl -n backend get pods -l app=task-api -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{","}{end}{"\n"}{end}'
-kubectl -n linkerd-viz port-forward svc/web 8084:8084 # open http://localhost:8084
+kubectl -n linkerd-viz port-forward svc/web 8084:8084 # or use http://linkerd.local
 ```

@@ -42,7 +42,7 @@ metadata:
 - **Use Linkerd Viz Dashboard:**
   ```sh
   kubectl -n linkerd-viz port-forward svc/web 8084:8084
-  # Visit http://localhost:8084
+  # Visit http://linkerd.local
   ```
 - **Observe Traffic and mTLS:**
   ```sh
@@ -62,19 +62,19 @@ metadata:
   - ![](images/linkerd-sidecar-injection.png)
 
 - **Linkerd Viz Dashboard:**
-  - Accessed at: [http://localhost:8084](http://localhost:8084)
+  - Accessed at: [http://linkerd.local](http://linkerd.local)
   - ![](images/linkerd-viz-dashboard.png)
 
 - **Namespace and Deployment Details:**
-  - Backend namespace: [http://localhost:8084/namespaces/backend](http://localhost:8084/namespaces/backend)
-  - Keycloak namespace: [http://localhost:8084/namespaces/keycloak](http://localhost:8084/namespaces/keycloak)
-  - Task API deployment: [http://localhost:8084/namespaces/backend/deployments/task-api](http://localhost:8084/namespaces/backend/deployments/task-api)
-  - Keycloak deployment: [http://localhost:8084/namespaces/keycloak/deployments/keycloak](http://localhost:8084/namespaces/keycloak/deployments/keycloak)
+  - Backend namespace: [http://linkerd.local/namespaces/backend](http://linkerd.local/namespaces/backend)
+  - Keycloak namespace: [http://linkerd.local/namespaces/keycloak](http://linkerd.local/namespaces/keycloak)
+  - Task API deployment: [http://linkerd.local/namespaces/backend/deployments/task-api](http://linkerd.local/namespaces/backend/deployments/task-api)
+  - Keycloak deployment: [http://linkerd.local/namespaces/keycloak/deployments/keycloak](http://linkerd.local/namespaces/keycloak/deployments/keycloak)
   - ![](images/linkerd-namespace-details.png)
   - ![](images/linkerd-deployment-details.png)
 
 - **Live Traffic Tap:**
-  - Tap URL: [http://localhost:8084/namespaces/backend/deployments/task-api/tap](http://localhost:8084/namespaces/backend/deployments/task-api/tap)
+  - Tap URL: [http://linkerd.local/namespaces/backend/deployments/task-api/tap](http://linkerd.local/namespaces/backend/deployments/task-api/tap)
   - CLI command used:
     ```sh
     linkerd viz tap deploy/task-api -n backend
