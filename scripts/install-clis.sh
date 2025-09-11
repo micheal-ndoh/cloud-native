@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Idempotent installer for required CLIs on Linux (x86_64)
-# Installs: linkerd, argocd, drone
+# Installs: linkerd, argocd, drone, kcadm (proxy to in-cluster Keycloak)
 # Usage: sudo ./scripts/install-clis.sh
 
 ARCH=$(uname -m)
@@ -45,6 +45,26 @@ install_drone() {
   install -m 0755 /tmp/drone "$BIN_DIR/drone"
 }
 
+install_kcadm_proxy() {
+  if command -v kcadm >/dev/null 2>&1; then
+    echo "[cli] kcadm proxy already installed"
+    return
+  fi
+  echo "[cli] Installing kcadm proxy (kubectl exec wrapper)..."
+  cat > "$BIN_DIR/kcadm" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+NS=${KEYCLOAK_NAMESPACE:-keycloak}
+POD=$(kubectl -n "$NS" get pod -l app=keycloak -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [[ -z "${POD:-}" ]]; then
+  echo "Keycloak pod not found in namespace $NS" >&2
+  exit 1
+fi
+kubectl -n "$NS" exec -i "$POD" -- /opt/keycloak/bin/kcadm.sh "$@"
+EOF
+  chmod +x "$BIN_DIR/kcadm"
+}
+
 main() {
   need_sudo
   case "$OS/$ARCH" in
@@ -52,6 +72,7 @@ main() {
       install_linkerd
       install_argocd
       install_drone
+      install_kcadm_proxy
       ;;
     *)
       echo "[cli] Unsupported platform: $OS/$ARCH" >&2
