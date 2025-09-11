@@ -17955,14 +17955,14 @@ spec:
         - /manager
         env:
         - name: OPERATOR_IMAGE_NAME
-          value: registry.local:5000/cloudnative-pg:latest
+          value: 10.38.229.242:5000/cloudnative-pg:latest
         - name: OPERATOR_NAMESPACE
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
         - name: MONITORING_QUERIES_CONFIGMAP
           value: cnpg-default-monitoring
-        image: registry.local:5000/cloudnative-pg:latest
+        image: 10.38.229.242:5000/cloudnative-pg:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
