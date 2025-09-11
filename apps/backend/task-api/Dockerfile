@@ -17,6 +17,10 @@ RUN mkdir -p src \
 COPY src ./src
 COPY migrations ./migrations
 COPY static ./static
+COPY swagger-ui-assets ./swagger-ui-assets
+
+# Set environment variable to use pre-downloaded Swagger UI assets
+ENV SWAGGER_UI_DOWNLOAD_URL=file:///app/swagger-ui-assets/v5.17.14.zip
 
 # Build the application
 RUN cargo build --release --offline \
