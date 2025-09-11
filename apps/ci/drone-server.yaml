@@ -13,6 +13,20 @@ stringData:
   DRONE_GITEA_CLIENT_ID: "210a3da9-fe9d-4cf3-b137-854ad9c77782"
   DRONE_GITEA_CLIENT_SECRET: "gto_acqpmpabayjfxtxtmsidgeoqn5k5qkifpha755jg4dxxycewnjxa"
   DRONE_RPC_SECRET: "supersecret"
+  DRONE_COOKIE_SECRET: "please-change-me-cookie-secret"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: drone-data
+  namespace: ci
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  storageClassName: local-path
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -69,6 +83,11 @@ spec:
                 secretKeyRef:
                   name: drone-secrets
                   key: DRONE_RPC_SECRET
+            - name: DRONE_COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: drone-secrets
+                  key: DRONE_COOKIE_SECRET
             - name: DRONE_GITEA_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -79,6 +98,10 @@ spec:
                 secretKeyRef:
                   name: drone-secrets
                   key: DRONE_GITEA_CLIENT_SECRET
+            - name: DRONE_GITEA_SKIP_VERIFY
+              value: "true"
+            - name: DRONE_LOGS_DEBUG
+              value: "true"
             - name: DRONE_USER_CREATE
               value: "username:michealndoh,admin:true"
             - name: DRONE_DATABASE_DRIVER
@@ -94,13 +117,12 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
-              ephemeral-storage: "128Mi"
             limits:
               memory: "256Mi"
-              ephemeral-storage: "256Mi"
       volumes:
         - name: drone-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: drone-data
 ---
 apiVersion: v1
 kind: Service
