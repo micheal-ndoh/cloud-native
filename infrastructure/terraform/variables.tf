@@ -35,7 +35,7 @@ variable "worker_memory" {
 variable "worker_disk" {
   description = "Disk size for worker node"
   type        = string
-  default     = "30G"
+  default     = "20G"
 }
 
 # Docker Registry configuration

@@ -12,16 +12,11 @@ data:
     REALM_NAME="${KEYCLOAK_REALM}"
     CLIENT_ID="${KEYCLOAK_CLIENT_ID}"
 
-    echo "Waiting for Keycloak to become ready at ${SERVER_URL} (kcadm auth)..."
+    echo "Waiting for Keycloak to become ready at ${SERVER_URL}..."
     for i in {1..60}; do
-      if /opt/keycloak/bin/kcadm.sh config credentials \
-        --server "${SERVER_URL}" \
-        --realm master \
-        --user "${KEYCLOAK_ADMIN}" \
-        --password "${KEYCLOAK_ADMIN_PASSWORD}" >/dev/null 2>&1; then
+      if curl -sSf "${SERVER_URL}/realms/master/.well-known/openid-configuration" >/dev/null; then
         break
       fi
-      echo "Keycloak not ready yet... retrying ($i/60)"
       sleep 5
     done
 
@@ -64,16 +59,14 @@ data:
       fi
     done
 
-    # Create or fix test user
+    # Create a test user if missing
     if ! /opt/keycloak/bin/kcadm.sh get users -r ${REALM_NAME} -q username=testuser | grep -q '"username"'; then
       echo "Creating test user"
       /opt/keycloak/bin/kcadm.sh create users -r ${REALM_NAME} -s username=testuser -s enabled=true
+      USER_ID=$(/opt/keycloak/bin/kcadm.sh get users -r ${REALM_NAME} -q username=testuser --fields id --format csv --noquotes)
+      /opt/keycloak/bin/kcadm.sh set-password -r ${REALM_NAME} --userid ${USER_ID} --new-password testpass
+      # Assign 'User' role
+      /opt/keycloak/bin/kcadm.sh add-roles -r ${REALM_NAME} --uid ${USER_ID} --rolename User || true
     fi
-    USER_ID=$(/opt/keycloak/bin/kcadm.sh get users -r ${REALM_NAME} -q username=testuser --fields id --format csv --noquotes)
-    /opt/keycloak/bin/kcadm.sh set-password -r ${REALM_NAME} --userid ${USER_ID} --new-password testpass --temporary=false
-    # Clear required actions and mark email verified to avoid "Account is not fully set up"
-    /opt/keycloak/bin/kcadm.sh update users/${USER_ID} -r ${REALM_NAME} -s 'requiredActions=[]' -s emailVerified=true
-    # Ensure 'User' role
-    /opt/keycloak/bin/kcadm.sh add-roles -r ${REALM_NAME} --uid ${USER_ID} --rolename User || true
 
     echo "Keycloak bootstrap completed"

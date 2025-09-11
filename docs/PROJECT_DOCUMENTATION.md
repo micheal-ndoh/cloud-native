@@ -144,3 +144,31 @@ flowchart TD
 ---
 
 *Update this file as you complete monitoring and other components!*
+
+## CI → Infra → ArgoCD (GitOps Pipeline)
+
+```mermaid
+graph LR
+  Dev[Developer Push] -->|Git| Repo[Gitea App Repo]
+  Repo -->|Build+Push| Registry[Local Registry 10.38.229.242:5000]
+  Repo -->|Update| InfraRepo[Infra Repo]
+  InfraRepo -->|Sync| ArgoCD
+  ArgoCD -->|Apply| Cluster[K3s Cluster]
+  Cluster --> Deployments
+```
+
+## Linkerd Mesh (mTLS)
+
+```mermaid
+graph TD
+  Client --> Ingress
+  Ingress -->|HTTP| TaskAPI
+  subgraph Mesh
+    TaskAPI[task-api
+    linkerd-proxy+app]
+    Keycloak[Keycloak
+    linkerd-proxy+app]
+  end
+  TaskAPI -->|mTLS| Keycloak
+  TaskAPI -->|mTLS| Postgres[(Postgres via CNPG)]
+```

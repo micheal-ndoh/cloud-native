@@ -41,25 +41,19 @@ check_ssh_access() {
         print_error "Cannot connect to master VM. Run setup.sh first."
         exit 1
     }
+    # Patch IPs before deployment
+    print_status "Patching manifests/docs with current registry IP..."
+    ./scripts/patch-ips.sh || true
 }
 
 # Configure /etc/hosts for task-api.local, keycloak.local, gitea.local and registry.local
 configure_hosts_file() {
-    local MASTER_IP
+    local MASTER_IP REGISTRY_IP
     MASTER_IP=$(get_master_ip)
+    REGISTRY_IP=$(get_registry_ip)
     print_status "Configuring /etc/hosts for task-api.local, keycloak.local, gitea.local and registry.local..."
-
-    # Check if task-api.local exists in /etc/hosts
-    if grep -q "task-api.local" /etc/hosts; then
-        if [[ "$(uname)" == "Darwin" ]]; then
-            sudo sed -i '' "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local/" /etc/hosts
-        else
-            sudo sed -i "s/.*task-api.local/$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local/" /etc/hosts
-        fi
-    else
-        # Add task-api.local, keycloak.local, gitea.local, registry.local and drone.local to /etc/hosts
-        echo "$MASTER_IP task-api.local keycloak.local gitea.local registry.local drone.local" | sudo tee -a /etc/hosts >/dev/null
-    fi
+    # Use idempotent helper
+    ./scripts/fix-hosts.sh "$MASTER_IP" "$REGISTRY_IP" || true
 }
 
 # Execute kubectl command on master VM with proper kubeconfig

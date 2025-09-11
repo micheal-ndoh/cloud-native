@@ -14,10 +14,6 @@ spec:
         app: gitea
     spec:
       automountServiceAccountToken: false
-      hostAliases:
-        - ip: "10.38.229.161"
-          hostnames:
-            - "drone.local"
       containers:
         - name: gitea
           image: 10.38.229.242:5000/gitea:latest
@@ -33,8 +29,6 @@ spec:
               value: "sqlite3"
             - name: GITEA__server__ROOT_URL
               value: "http://gitea.local/"
-            - name: GITEA__webhook__ALLOWED_HOST_LIST
-              value: "drone.local,10.38.229.161"
           volumeMounts:
             - name: gitea-data
               mountPath: /data

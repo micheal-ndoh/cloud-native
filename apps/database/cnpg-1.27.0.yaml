@@ -17943,10 +17943,6 @@ spec:
       labels:
         app.kubernetes.io/name: cloudnative-pg
     spec:
-      hostAliases:
-      - ip: "10.38.229.242"
-        hostnames:
-        - "registry.local"
       containers:
       - args:
         - controller
@@ -17967,7 +17963,7 @@ spec:
         - name: MONITORING_QUERIES_CONFIGMAP
           value: cnpg-default-monitoring
         image: 10.38.229.242:5000/cloudnative-pg:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /readyz

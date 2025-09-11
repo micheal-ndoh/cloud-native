@@ -16,10 +16,6 @@ spec:
         app: drone-runner
     spec:
       automountServiceAccountToken: false
-      hostAliases:
-        - ip: "10.38.229.242"
-          hostnames:
-            - "registry.local"
       containers:
         - name: runner
           image: 10.38.229.242:5000/drone-runner-docker:1
@@ -28,26 +24,24 @@ spec:
               value: drone-server.ci.svc.cluster.local
             - name: DRONE_RPC_PROTO
               value: http
-            - name: DOCKERD_ARGS
-              value: "--insecure-registry registry.local:5000 --insecure-registry 10.38.229.242:5000"
             - name: DRONE_RPC_SECRET
               valueFrom:
                 secretKeyRef:
                   name: drone-secrets
                   key: DRONE_RPC_SECRET
             - name: DRONE_RUNNER_CAPACITY
-              value: "4"
-            - name: DRONE_RUNNER_PRIVILEGED_IMAGES
-              value: plugins/docker
+              value: "2"
           volumeMounts:
             - name: dockersock
               mountPath: /var/run/docker.sock
           resources:
             requests:
-              cpu: "50m"
-              memory: "64Mi"
-            limits:
+              cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              memory: "256Mi"
+              ephemeral-storage: "512Mi"
       volumes:
         - name: dockersock
           hostPath:
