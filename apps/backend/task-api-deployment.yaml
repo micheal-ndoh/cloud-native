@@ -19,9 +19,12 @@ spec:
     spec:
       containers:
         - name: task-api
-          image: 10.38.229.242:5000/task-api:c109aa5
+          image: 10.38.229.242:5000/task-api:swagger-fix
           ports:
             - containerPort: 3000
+          resources:
+            requests:
+              cpu: "50m"
           envFrom:
             - configMapRef:
                 name: task-api-config
