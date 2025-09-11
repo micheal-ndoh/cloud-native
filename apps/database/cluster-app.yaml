@@ -5,7 +5,7 @@ metadata:
   namespace: database
 spec:
   instances: 1
-  imageName: registry.local:5000/postgresql:16.4
+  imageName: 10.38.229.242:5000/postgresql:16.4
   storage:
     size: 5Gi
   bootstrap:

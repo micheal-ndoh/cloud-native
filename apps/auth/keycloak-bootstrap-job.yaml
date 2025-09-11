@@ -10,7 +10,7 @@ spec:
       automountServiceAccountToken: false
       containers:
         - name: kc-bootstrap
-          image: registry.local:5000/keycloak:latest
+          image: 10.38.229.242:5000/keycloak:latest
           command: ["bash", "/bootstrap/bootstrap.sh"]
           envFrom:
             - configMapRef:

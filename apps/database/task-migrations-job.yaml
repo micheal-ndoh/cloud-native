@@ -10,7 +10,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: psql
-          image: registry.local:5000/postgresql:16.4
+          image: 10.38.229.242:5000/postgresql:16.4
           command: ["bash", "-lc", "psql -v ON_ERROR_STOP=1 $DATABASE_URL -f /migrations/001_init.sql"]
           resources:
             requests:
