@@ -50,7 +50,7 @@ steps:
     commands:
       - set -euo pipefail
       - IMAGE_TAG=$(echo ${DRONE_COMMIT_SHA} | cut -c1-7)
-      - REPO_URL_WITH_AUTH="http://michealndoh:89d192d125811a493ae841b42628e3bc7283af16@gitea.local/michealndoh/Cloud-native-infra.git"
+      - REPO_URL_WITH_AUTH="http://michealndoh:fb70ec74c13a3907a045e885ee4e382e3973eda5@gitea.local/michealndoh/Cloud-native-infra.git"
       - git clone "$REPO_URL_WITH_AUTH" infra
       - cd infra
       - |

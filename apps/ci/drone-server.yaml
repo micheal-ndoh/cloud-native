@@ -10,8 +10,8 @@ metadata:
   namespace: ci
 type: Opaque
 stringData:
-  DRONE_GITEA_CLIENT_ID: "724fc444-65e6-4c97-998c-58a2618886a3"
-  DRONE_GITEA_CLIENT_SECRET: "gto_pwa53mg2vb55ql262qawzdqjgnew3xgl3ftyfrhycxtcdrb2xcpa"
+  DRONE_GITEA_CLIENT_ID: "210a3da9-fe9d-4cf3-b137-854ad9c77782"
+  DRONE_GITEA_CLIENT_SECRET: "gto_acqpmpabayjfxtxtmsidgeoqn5k5qkifpha755jg4dxxycewnjxa"
   DRONE_RPC_SECRET: "supersecret"
 ---
 apiVersion: v1
@@ -94,12 +94,13 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "128Mi"
             limits:
               memory: "256Mi"
+              ephemeral-storage: "256Mi"
       volumes:
         - name: drone-data
-          persistentVolumeClaim:
-            claimName: drone-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
