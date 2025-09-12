@@ -117,12 +117,13 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "128Mi"
             limits:
               memory: "256Mi"
+              ephemeral-storage: "256Mi"
       volumes:
         - name: drone-data
-          persistentVolumeClaim:
-            claimName: drone-data
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
