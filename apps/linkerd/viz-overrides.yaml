@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tap
+  namespace: linkerd-viz
+spec:
+  replicas: 1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: linkerd-viz
+spec:
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled

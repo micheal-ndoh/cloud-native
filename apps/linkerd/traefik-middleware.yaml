@@ -6,4 +6,5 @@ metadata:
 spec:
   headers:
     customRequestHeaders:
-      Host: localhost
+      Host: linkerd.local
+      Origin: http://linkerd.local
