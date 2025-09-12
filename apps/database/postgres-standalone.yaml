@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-standalone
+  namespace: database
+spec:
+  serviceName: postgres-standalone
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-standalone
+  template:
+    metadata:
+      labels:
+        app: postgres-standalone
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: k3s-master
+      containers:
+        - name: postgres
+          image: 10.38.229.242:5000/postgresql:16.4
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: database
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+              ephemeral-storage: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+              ephemeral-storage: "1Gi"
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path
+        resources:
+          requests:
+            storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-app-rw
+  namespace: database
+  labels:
+    app: postgres-standalone
+spec:
+  selector:
+    app: postgres-standalone
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cluster-app-ro
+  namespace: database
+  labels:
+    app: postgres-standalone
+spec:
+  selector:
+    app: postgres-standalone
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
