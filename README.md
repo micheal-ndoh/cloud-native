@@ -280,3 +280,27 @@ Otherwise, verify sidecar and metrics via kubectl:
 kubectl -n backend get pods -l app=task-api -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .spec.containers[*]}{.name}{","}{end}{"\n"}{end}'
 kubectl -n linkerd-viz port-forward svc/web 8084:8084 # or use http://linkerd.local
 ```
+
+## Post-cleanup recovery (Gitea, ArgoCD, Drone)
+
+After running the cleanup script to reclaim node storage, the following recovery actions were applied:
+
+- Reprovisioned Gitea PVC on `k3s-master` and pinned `gitea` Deployment to `k3s-master` to resolve DiskPressure and volume node affinity.
+- Recreated Gitea repositories and pushed code:
+  - App repo: `http://gitea.local/michealndoh/Cloud-native.git`
+  - Infra repo: `http://gitea.local/michealndoh/Cloud-native-infra.git`
+- Added Drone webhooks to both repos (`http://drone.local/hook`) for push/PR events.
+- Created new Gitea OAuth2 application for Drone and rotated Drone server credentials:
+  - Client ID: `210a3da9-fe9d-4cf3-b137-854ad9c77782`
+  - Redirect URI: `http://drone.local/login`
+- Updated `.drone.yml` and `apps/ci/drone-server.yaml` to use the new token and OAuth client.
+
+To rerun:
+```bash
+# Reclaim node space and restart services
+chmod +x scripts/cleanup-nodes.sh
+./scripts/cleanup-nodes.sh
+
+# Re-sync Argo CD apps
+kubectl annotate application.argoproj.io/root-apps -n argocd argo.argoproj.io/refresh=hard --overwrite || true
+```
