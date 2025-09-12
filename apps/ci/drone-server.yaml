@@ -123,7 +123,8 @@ spec:
               ephemeral-storage: "256Mi"
       volumes:
         - name: drone-data
-          emptyDir: {}
+          persistentVolumeClaim:
+            claimName: drone-data
 ---
 apiVersion: v1
 kind: Service
