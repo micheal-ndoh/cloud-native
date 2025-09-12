@@ -7,8 +7,14 @@ spec:
   instances: 1
   imageName: 10.38.229.242:5000/postgresql:16.4
   affinity:
-    nodeSelector:
-      kubernetes.io/hostname: k3s-master
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                  - k3s-master
   storage:
     size: 5Gi
   bootstrap:
