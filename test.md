@@ -658,3 +658,65 @@ If all tests pass and validations succeed, you have successfully completed the C
 ---
 
 *Remember: In YAML, no one can hear you scream... but with this comprehensive testing guide, you'll have the tools to debug any issue that comes your way!* 😄
+
+## 11. Final Integration Tests
+
+### 11.1 Drone OAuth End-to-End
+```bash
+# Verify Drone uses the correct client id from secret
+kubectl -n ci get secret drone-secrets -o jsonpath='{.data.DRONE_GITEA_CLIENT_ID}' | base64 -d; echo
+
+# Verify Gitea OAuth app exists and authorize URL works (expects 303)
+curl -sS -o /dev/null -w "%{http_code}\n" "http://gitea.local/login/oauth/authorize?client_id=$(kubectl -n ci get secret drone-secrets -o jsonpath='{.data.DRONE_GITEA_CLIENT_ID}' | base64 -d)&redirect_uri=http%3A%2F%2Fdrone.local%2Flogin&response_type=code&state=test"
+
+# UI check: open Drone and click Continue
+# http://drone.local
+```
+
+**Expected Results:**
+- Secret shows the real client id (not gitea-client-id)
+- Authorize endpoint returns 303
+- Drone login completes via Gitea
+
+### 11.2 Argo CD Source Sanity
+```bash
+# Ensure all Applications point to internal Gitea infra unless intentionally external
+kubectl get applications -n argocd -o json | jq -r '.items[] | "\(.metadata.name)\t\(.spec.source.repoURL)\t\(.spec.source.path)"'
+```
+
+**Expected Results:**
+- backend, database, keycloak, monitoring, root-apps use the in-cluster Gitea infra repo
+- No Applications point to GitHub unless explicitly required
+
+### 11.3 Hosts/DNS Resolution
+```bash
+# Confirm critical hostnames resolve to ingress IP
+getent hosts gitea.local
+getent hosts drone.local
+getent hosts keycloak.local
+getent hosts task-api.local
+getent hosts linkerd.local
+
+# If missing, apply local hosts entries (idempotent helper)
+./scripts/fix-hosts.sh <INGRESS_IP> 10.38.229.242
+```
+
+**Expected Results:**
+- All hostnames resolve locally to your ingress/load balancer IP
+
+### 11.4 Linkerd Tap/Websocket Check
+```bash
+# Viz web reachable
+curl -sS -o /dev/null -w "%{http_code}\n" http://linkerd.local/
+
+# Tap service endpoints present
+kubectl -n linkerd-viz get endpoints tap
+
+# Try a short tap from CLI (if linkerd CLI available)
+# linkerd viz tap -n backend deploy/task-api --duration 10s
+```
+
+**Expected Results:**
+- HTTP 200/303 from Viz web
+- tap endpoints not empty
+- CLI tap streams events (if CLI available)

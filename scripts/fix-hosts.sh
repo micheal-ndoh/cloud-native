@@ -33,7 +33,7 @@ TMP=$(mktemp)
 cp /etc/hosts "$TMP"
 
 # Remove existing conflicting lines for our hostnames
-sed -i "/\\b\(gitea\.local\|drone\.local\|task-api\.local\|keycloak\.local\|registry\.local\|linkerd\.local\|grafana\.local\|prom\.local\|porm\.local\|argocd\.local\)\\b/d" "$TMP"
+sed -i "/\\b\(gitea\.local\|drone\.local\|task-api\.local\|keycloak\.local\|registry\.local\|linkerd\.local\|grafana\.local\|prom\.local\|porm\.local\|argocd\.local\|gitea\.gitea\.svc\.cluster\.local\)\\b/d" "$TMP"
 
 cat >> "$TMP" <<EOF
 ${INGRESS_IP} gitea.local
@@ -45,9 +45,10 @@ ${INGRESS_IP} linkerd.local
 ${INGRESS_IP} grafana.local
 ${INGRESS_IP} prom.local porm.local
 ${INGRESS_IP} argocd.local
+${INGRESS_IP} gitea.gitea.svc.cluster.local
 EOF
 
-echo "Preview of changes:" && tail -n 10 "$TMP"
+echo "Preview of changes:" && tail -n 12 "$TMP"
 
 echo "Applying changes to /etc/hosts (sudo required)..."
 sudo cp "$TMP" /etc/hosts
